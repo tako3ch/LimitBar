@@ -35,14 +35,8 @@ final class SettingsStore: ObservableObject {
     }
 
     private let defaults: UserDefaults
-    private let credentialStore: CredentialStore
-
-    init(
-        defaults: UserDefaults = .standard,
-        credentialStore: CredentialStore = .shared
-    ) {
+    init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        self.credentialStore = credentialStore
         thresholdPercent = defaults.object(forKey: "thresholdPercent") as? Double ?? 90
         refreshInterval = defaults.object(forKey: "refreshInterval") as? Double ?? 300
         menuBarEnabled = defaults.object(forKey: "menuBarEnabled") as? Bool ?? true
@@ -50,8 +44,13 @@ final class SettingsStore: ObservableObject {
         widgetAlwaysOnTop = defaults.object(forKey: "widgetAlwaysOnTop") as? Bool ?? false
         codexAccountLabel = defaults.string(forKey: "codexAccountLabel")
         claudeAccountLabel = defaults.string(forKey: "claudeAccountLabel")
-        codexConnected = credentialStore.hasCredential(for: .codex)
-        claudeConnected = credentialStore.hasCredential(for: .claudeCode)
+        let detector = LocalAccountSessionDetector.shared
+        let storedCodexConnected = defaults.object(forKey: "codexConnected") as? Bool
+        let storedClaudeConnected = defaults.object(forKey: "claudeConnected") as? Bool
+        let hasCodexSession = detector.hasSession(for: .codex)
+        let hasClaudeSession = detector.hasSession(for: .claudeCode)
+        codexConnected = (storedCodexConnected ?? hasCodexSession) && hasCodexSession
+        claudeConnected = (storedClaudeConnected ?? hasClaudeSession) && hasClaudeSession
         let storedLaunchAtLogin = defaults.object(forKey: "launchAtLogin") as? Bool ?? false
         launchAtLogin = AppEnvironment.supportsLaunchAtLogin ? storedLaunchAtLogin : false
         let storedNotificationsEnabled = defaults.object(forKey: "notificationsEnabled") as? Bool ?? true
@@ -107,28 +106,26 @@ final class SettingsStore: ObservableObject {
 
     func setConnection(_ service: ServiceKind, isConnected: Bool) {
         if isConnected {
-            return
+            try? connect(service)
+        } else {
+            disconnect(service)
         }
-        disconnect(service)
     }
 
-    func connect(_ service: ServiceKind, label: String, apiKey: String) throws {
-        let credential = AccountCredential(label: label, apiKey: apiKey)
-        try credentialStore.saveCredential(credential, for: service)
+    func connect(_ service: ServiceKind) throws {
+        let session = try LocalAccountSessionDetector.shared.detectSession(for: service)
 
         switch service {
         case .codex:
             codexConnected = true
-            codexAccountLabel = normalizedLabel(from: label, service: service)
+            codexAccountLabel = normalizedLabel(from: session.label, service: service)
         case .claudeCode:
             claudeConnected = true
-            claudeAccountLabel = normalizedLabel(from: label, service: service)
+            claudeAccountLabel = normalizedLabel(from: session.label, service: service)
         }
     }
 
     func disconnect(_ service: ServiceKind) {
-        try? credentialStore.deleteCredential(for: service)
-
         switch service {
         case .codex:
             codexConnected = false
@@ -150,10 +147,6 @@ final class SettingsStore: ObservableObject {
         case .claudeCode:
             claudeAccountLabel
         }
-    }
-
-    func apiKey(for service: ServiceKind) -> String? {
-        try? credentialStore.loadCredential(for: service)?.apiKey
     }
 
     private func save(_ key: String, value: Any) {

@@ -52,29 +52,39 @@ final class UsageStore: ObservableObject {
             return
         }
 
-        do {
-            let results = try await withThrowingTaskGroup(of: UsageSnapshot.self) { group in
-                for provider in activeProviders {
-                    group.addTask {
-                        try await provider.fetchUsage()
+        let results = await withTaskGroup(of: Result<UsageSnapshot, Error>.self) { group in
+            for provider in activeProviders {
+                group.addTask {
+                    do {
+                        return .success(try await provider.fetchUsage())
+                    } catch {
+                        return .failure(error)
                     }
-                }
-
-                var snapshots: [UsageSnapshot] = []
-                for try await snapshot in group {
-                    snapshots.append(snapshot)
-                }
-                return snapshots.sorted {
-                    (ServiceKind.allCases.firstIndex(of: $0.service) ?? 0) < (ServiceKind.allCases.firstIndex(of: $1.service) ?? 0)
                 }
             }
 
-            lastRefreshError = nil
-            snapshots = results
-            handleNotifications(for: results)
-        } catch {
-            lastRefreshError = error.localizedDescription
+            var snapshots: [UsageSnapshot] = []
+            var errors: [String] = []
+
+            for await result in group {
+                switch result {
+                case .success(let snapshot):
+                    snapshots.append(snapshot)
+                case .failure(let error):
+                    errors.append(error.localizedDescription)
+                }
+            }
+
+            return (snapshots, errors)
         }
+
+        let orderedSnapshots = results.0.sorted {
+            (ServiceKind.allCases.firstIndex(of: $0.service) ?? 0) < (ServiceKind.allCases.firstIndex(of: $1.service) ?? 0)
+        }
+
+        snapshots = orderedSnapshots
+        handleNotifications(for: orderedSnapshots)
+        lastRefreshError = results.1.isEmpty ? nil : results.1.joined(separator: "\n")
     }
 
     private func scheduleTimer() {

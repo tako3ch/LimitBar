@@ -17,12 +17,8 @@ final class AppModel: ObservableObject {
         self.usageStore = UsageStore(
             settings: settings,
             providers: [
-                AnyUsageProvider(
-                    MockUsageProvider(service: .codex, values: [18, 24, 31, 48, 67, 76, 91, 93, 0, 22, 39, 58])
-                ),
-                AnyUsageProvider(
-                    MockUsageProvider(service: .claudeCode, values: [11, 19, 28, 42, 54, 73, 81, 89, 96, 96, 12, 26])
-                )
+                AnyUsageProvider(CodexUsageProvider()),
+                AnyUsageProvider(ClaudeCodeUsageProvider())
             ]
         )
 

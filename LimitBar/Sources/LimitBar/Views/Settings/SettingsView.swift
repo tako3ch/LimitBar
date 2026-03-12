@@ -3,7 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var usageStore: UsageStore
-    @State private var connectionSheetService: ServiceKind?
     @State private var disconnectConfirmationService: ServiceKind?
     @State private var connectionErrorMessage: String?
 
@@ -117,20 +116,6 @@ struct SettingsView: View {
         .padding(20)
         .frame(width: 460)
         .background(WindowLevelReader(level: .floating))
-        .sheet(item: $connectionSheetService) { service in
-            AccountConnectionSheet(service: service, strings: strings) { label, apiKey in
-                do {
-                    try settings.connect(service, label: label, apiKey: apiKey)
-                    connectionErrorMessage = nil
-                    connectionSheetService = nil
-                    Task { await usageStore.refresh() }
-                    return true
-                } catch {
-                    connectionErrorMessage = error.localizedDescription
-                    return false
-                }
-            }
-        }
         .alert(strings.connectionErrorTitle, isPresented: Binding(
             get: { connectionErrorMessage != nil },
             set: { if !$0 { connectionErrorMessage = nil } }
@@ -160,7 +145,13 @@ struct SettingsView: View {
         if settings.isConnected(service) {
             disconnectConfirmationService = service
         } else {
-            connectionSheetService = service
+            do {
+                try settings.connect(service)
+                connectionErrorMessage = nil
+                Task { await usageStore.refresh() }
+            } catch {
+                connectionErrorMessage = error.localizedDescription
+            }
         }
     }
 }
@@ -212,56 +203,6 @@ private struct AccountIntegrationRow: View {
     }
 }
 
-private struct AccountConnectionSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let service: ServiceKind
-    let strings: SettingsStrings
-    let onConnect: (String, String) -> Bool
-
-    @State private var accountLabel = ""
-    @State private var apiKey = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(strings.connectTitle(service.displayName))
-                .font(.system(size: 20, weight: .semibold))
-
-            Text(strings.connectDescription(service.displayName))
-                .font(.system(size: 12))
-                .foregroundStyle(LimitBarTheme.muted)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text(strings.accountName)
-                    .font(.system(size: 12, weight: .medium))
-                TextField(strings.accountNamePlaceholder(service), text: $accountLabel)
-
-                Text(strings.apiKey)
-                    .font(.system(size: 12, weight: .medium))
-                SecureField(strings.apiKeyPlaceholder(service), text: $apiKey)
-            }
-
-            HStack {
-                Spacer()
-
-                Button(strings.cancel) {
-                    dismiss()
-                }
-
-                Button(strings.connect) {
-                    if onConnect(accountLabel, apiKey) {
-                        dismiss()
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .padding(20)
-        .frame(width: 420)
-    }
-}
-
 private struct SettingsStrings {
     let appLanguage: AppLanguage
 
@@ -294,8 +235,6 @@ private struct SettingsStrings {
     var disconnect: String { isJapanese ? "解除" : "Disconnect" }
     var cancel: String { isJapanese ? "キャンセル" : "Cancel" }
     var ok: String { isJapanese ? "OK" : "OK" }
-    var accountName: String { isJapanese ? "表示名" : "Display name" }
-    var apiKey: String { isJapanese ? "APIキー" : "API key" }
     var connectionErrorTitle: String { isJapanese ? "接続に失敗しました" : "Connection failed" }
 
     func minutes(_ value: Int) -> String {
@@ -343,15 +282,7 @@ private struct SettingsStrings {
     }
 
     func linkAccount(_ serviceName: String) -> String {
-        isJapanese ? "\(serviceName) アカウントを連携して使用状況の監視を開始します。" : "Link your \(serviceName) account to start monitoring usage."
-    }
-
-    func connectTitle(_ serviceName: String) -> String {
-        isJapanese ? "\(serviceName) を接続" : "Connect \(serviceName)"
-    }
-
-    func connectDescription(_ serviceName: String) -> String {
-        isJapanese ? "\(serviceName) の API キーを macOS キーチェーンに安全に保存します。" : "Your \(serviceName) API key will be stored securely in the macOS Keychain."
+        isJapanese ? "\(serviceName) 本体のログイン状態を使って使用状況を監視します。" : "Use the signed-in desktop session for \(serviceName) usage monitoring."
     }
 
     func disconnectTitle(_ serviceName: String) -> String {
@@ -359,24 +290,6 @@ private struct SettingsStrings {
     }
 
     func disconnectMessage(_ serviceName: String) -> String {
-        isJapanese ? "保存済みの API キーをキーチェーンから削除し、\(serviceName) の監視を停止します。" : "This removes the saved API key from Keychain and stops monitoring \(serviceName)."
-    }
-
-    func accountNamePlaceholder(_ service: ServiceKind) -> String {
-        switch service {
-        case .codex:
-            isJapanese ? "例: OpenAI Team" : "Example: OpenAI Team"
-        case .claudeCode:
-            isJapanese ? "例: Anthropic Workspace" : "Example: Anthropic Workspace"
-        }
-    }
-
-    func apiKeyPlaceholder(_ service: ServiceKind) -> String {
-        switch service {
-        case .codex:
-            "sk-..."
-        case .claudeCode:
-            "sk-ant-..."
-        }
+        isJapanese ? "\(serviceName) のローカル監視を停止します。アプリ本体のログイン状態はそのまま残ります。" : "This stops local monitoring for \(serviceName) and keeps the desktop login session intact."
     }
 }

@@ -67,6 +67,30 @@ struct UsageSnapshot: Identifiable, Equatable, Codable {
 
     var id: ServiceKind { service }
     var clampedPercent: Double { min(max(usedPercent, 0), 100) }
+
+    static func status(for percent: Double) -> UsageStatus {
+        switch percent {
+        case 0:
+            .resetDetected
+        case 90...:
+            .limitNear
+        case 70..<90:
+            .warning
+        default:
+            .normal
+        }
+    }
+
+    static func resetDescription(after seconds: Int) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        }
+
+        return "\(max(minutes, 1))m"
+    }
 }
 
 enum WidgetSize: String, CaseIterable, Codable, Identifiable {

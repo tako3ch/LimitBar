@@ -20,22 +20,9 @@ struct MockUsageProvider: UsageProvider {
         return UsageSnapshot(
             service: service,
             usedPercent: percent,
-            status: Self.status(for: percent),
+            status: UsageSnapshot.status(for: percent),
             lastUpdated: .now,
             details: "Mock sample \(index + 1)"
         )
-    }
-
-    private static func status(for percent: Double) -> UsageStatus {
-        switch percent {
-        case 0:
-            .resetDetected
-        case 90...:
-            .limitNear
-        case 70..<90:
-            .warning
-        default:
-            .normal
-        }
     }
 }
