@@ -4,6 +4,7 @@ import AppKit
 struct MenuBarDashboardView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var usageStore: UsageStore
+    var showReport: () -> Void = {}
 
     private var strings: AppStrings {
         AppStrings(language: settings.appLanguage)
@@ -42,6 +43,15 @@ struct MenuBarDashboardView: View {
                         .foregroundStyle(LimitBarTheme.strongText)
                         .rotationEffect(.degrees(usageStore.isRefreshing ? 180 : 0))
                         .animation(.easeInOut(duration: 0.5), value: usageStore.isRefreshing)
+
+                        Button {
+                            showReport()
+                        } label: {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(LimitBarTheme.strongText)
 
                         SettingsLink {
                             Image(systemName: "gearshape")

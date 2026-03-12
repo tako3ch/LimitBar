@@ -37,7 +37,7 @@ struct FloatingWidgetView: View {
                     .foregroundStyle(LimitBarTheme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ForEach(usageStore.snapshots) { snapshot in
+                ForEach(orderedSnapshots) { snapshot in
                     if settings.displayMode == .minimal {
                         minimalRow(for: snapshot)
                     } else {
@@ -53,6 +53,14 @@ struct FloatingWidgetView: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .onTapGesture(count: 2, perform: openSettings)
+    }
+
+    private var orderedSnapshots: [UsageSnapshot] {
+        usageStore.snapshots.sorted { a, b in
+            let ia = settings.widgetServiceOrder.firstIndex(of: a.service.rawValue) ?? Int.max
+            let ib = settings.widgetServiceOrder.firstIndex(of: b.service.rawValue) ?? Int.max
+            return ia < ib
+        }
     }
 
     private var widgetWidth: CGFloat {
@@ -72,7 +80,7 @@ struct FloatingWidgetView: View {
                 .foregroundStyle(LimitBarTheme.strongText)
                 .frame(width: 84, alignment: .leading)
 
-            ProgressPill(percent: snapshot.clampedPercent, tint: snapshot.status.tint)
+            ProgressPill(percent: snapshot.clampedPercent, tint: snapshot.tint)
                 .frame(height: 6)
 
             Text("\(Int(snapshot.clampedPercent))%")
@@ -114,7 +122,8 @@ struct FloatingWidgetView: View {
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         }
         .compositingGroup()
-        .shadow(color: .black.opacity(0.22), radius: 24, y: 8)
+        .opacity(settings.widgetOpacity)
+        .shadow(color: .black.opacity(0.22 * settings.widgetOpacity), radius: 24, y: 8)
     }
 
     private func openSettings() {

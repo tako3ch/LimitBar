@@ -23,7 +23,7 @@ struct ServiceUsageCard: View {
                             if displayMode == .normal {
                                 Text(snapshot.status.label)
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(snapshot.status.tint)
+                                    .foregroundStyle(snapshot.tint)
                                     .textCase(.lowercase)
                             }
                         }
@@ -37,7 +37,7 @@ struct ServiceUsageCard: View {
                         .contentTransition(.numericText())
                 }
 
-                ProgressPill(percent: snapshot.clampedPercent, tint: snapshot.status.tint)
+                ProgressPill(percent: snapshot.clampedPercent, tint: snapshot.tint)
 
                 if displayMode == .normal {
                     HStack {

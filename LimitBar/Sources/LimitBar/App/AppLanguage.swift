@@ -15,8 +15,13 @@ enum AppLanguage: String, CaseIterable, Codable, Identifiable {
         }
     }
 
+    static func fromSystemLocale() -> AppLanguage {
+        let preferred = Locale.preferredLanguages.first ?? ""
+        return preferred.hasPrefix("ja") ? .japanese : .english
+    }
+
     static func defaultValue() -> AppLanguage {
-        .japanese
+        fromSystemLocale()
     }
 }
 
@@ -44,4 +49,5 @@ struct AppStrings {
     }
     var quitApp: String { isJapanese ? "アプリを終了する" : "Quit App" }
     var updatedPrefix: String { isJapanese ? "更新" : "Updated" }
+    var openReport: String { isJapanese ? "使用量レポート" : "Usage Report" }
 }

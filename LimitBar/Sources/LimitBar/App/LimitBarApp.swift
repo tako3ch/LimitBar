@@ -17,13 +17,13 @@ struct LimitBarApp: App {
             get: { model.settings.menuBarEnabled },
             set: { value in model.settings.menuBarEnabled = value }
         )) {
-            MenuBarDashboardView(settings: model.settings, usageStore: model.usageStore)
+            MenuBarDashboardView(settings: model.settings, usageStore: model.usageStore, showReport: { model.showReportWindow() })
         }
         .menuBarExtraStyle(.window)
 
         Settings {
             SettingsView(settings: model.settings, usageStore: model.usageStore)
         }
-        .defaultSize(width: 460, height: 420)
+        .defaultSize(width: 540, height: 560)
     }
 }

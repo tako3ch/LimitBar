@@ -13,11 +13,7 @@ final class SettingsStore: ObservableObject {
     @Published var claudeAccountLabel: String? { didSet { saveOptional("claudeAccountLabel", value: claudeAccountLabel) } }
     @Published var launchAtLogin: Bool
     @Published var notificationsEnabled: Bool
-    @Published var appLanguage: AppLanguage {
-        didSet {
-            save("appLanguage", value: appLanguage.rawValue)
-        }
-    }
+    var appLanguage: AppLanguage { AppLanguage.fromSystemLocale() }
     @Published var widgetSize: WidgetSize {
         didSet {
             save("widgetSize", value: widgetSize.rawValue)
@@ -32,6 +28,12 @@ final class SettingsStore: ObservableObject {
         didSet {
             save("displayMode", value: displayMode.rawValue)
         }
+    }
+    @Published var widgetOpacity: Double {
+        didSet { save("widgetOpacity", value: widgetOpacity) }
+    }
+    @Published var widgetServiceOrder: [String] {
+        didSet { defaults.set(widgetServiceOrder, forKey: "widgetServiceOrder") }
     }
 
     private let defaults: UserDefaults
@@ -55,14 +57,14 @@ final class SettingsStore: ObservableObject {
         launchAtLogin = AppEnvironment.supportsLaunchAtLogin ? storedLaunchAtLogin : false
         let storedNotificationsEnabled = defaults.object(forKey: "notificationsEnabled") as? Bool ?? true
         notificationsEnabled = AppEnvironment.supportsUserNotifications ? storedNotificationsEnabled : false
-        let storedLanguage = defaults.string(forKey: "appLanguage")
-        appLanguage = storedLanguage.flatMap(AppLanguage.init(rawValue:)) ?? AppLanguage.defaultValue()
         let storedSize = defaults.string(forKey: "widgetSize") ?? WidgetSize.small.rawValue
         widgetSize = WidgetSize(rawValue: storedSize) ?? .small
         let storedWidgetPosition = defaults.string(forKey: "widgetPosition") ?? WidgetPosition.topRight.rawValue
         widgetPosition = WidgetPosition(rawValue: storedWidgetPosition) ?? .topRight
         let storedDisplayMode = defaults.string(forKey: "displayMode") ?? DisplayMode.normal.rawValue
         displayMode = DisplayMode(rawValue: storedDisplayMode) ?? .normal
+        widgetOpacity = defaults.object(forKey: "widgetOpacity") as? Double ?? 0.85
+        widgetServiceOrder = (defaults.array(forKey: "widgetServiceOrder") as? [String]) ?? ["codex", "claudeCode"]
 
         if !AppEnvironment.supportsLaunchAtLogin && storedLaunchAtLogin {
             defaults.set(false, forKey: "launchAtLogin")

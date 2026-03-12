@@ -10,7 +10,9 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section(strings.accounts) {
+
+            // MARK: アカウント
+            Section {
                 VStack(spacing: 12) {
                     ForEach(ServiceKind.allCases) { service in
                         AccountIntegrationRow(
@@ -23,15 +25,14 @@ struct SettingsView: View {
                     }
                 }
                 .padding(.vertical, 4)
+            } header: {
+                Label(strings.accounts, systemImage: "person.2")
+            } footer: {
+                Text(strings.accountsFooter)
             }
 
-            Section(strings.appearance) {
-                Picker(strings.language, selection: $settings.appLanguage) {
-                    ForEach(AppLanguage.allCases) { language in
-                        Text(strings.languageLabel(language)).tag(language)
-                    }
-                }
-
+            // MARK: 表示モード
+            Section {
                 Picker(strings.displayMode, selection: $settings.displayMode) {
                     ForEach(DisplayMode.allCases) { mode in
                         Text(strings.displayModeLabel(mode)).tag(mode)
@@ -42,17 +43,76 @@ struct SettingsView: View {
                 Text(settings.displayMode == .minimal ? strings.minimalDescription : strings.normalDescription)
                     .font(.footnote)
                     .foregroundStyle(LimitBarTheme.muted)
+            } header: {
+                Label(strings.displayModeSection, systemImage: "rectangle.on.rectangle")
             }
 
-            Section(strings.monitoring) {
-                VStack(alignment: .leading, spacing: 8) {
+            // MARK: ウィジェット
+            Section {
+                Toggle(strings.floatingWidget, isOn: $settings.widgetEnabled)
+
+                Picker(strings.widgetSize, selection: $settings.widgetSize) {
+                    Text("S").tag(WidgetSize.small)
+                    Text("M").tag(WidgetSize.medium)
+                }
+                .pickerStyle(.segmented)
+                .disabled(!settings.widgetEnabled)
+
+                Picker(strings.widgetPosition, selection: $settings.widgetPosition) {
+                    ForEach(WidgetPosition.allCases) { position in
+                        Text(strings.widgetPositionLabel(position)).tag(position)
+                    }
+                }
+                .disabled(!settings.widgetEnabled)
+
+                Toggle(strings.alwaysOnTop, isOn: $settings.widgetAlwaysOnTop)
+                    .disabled(!settings.widgetEnabled)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(strings.widgetOpacity)
+                        Spacer()
+                        Text("\(Int(settings.widgetOpacity * 100))%")
+                            .monospacedDigit()
+                            .foregroundStyle(LimitBarTheme.muted)
+                    }
+                    Slider(value: $settings.widgetOpacity, in: 0.3...1.0, step: 0.05)
+                }
+                .disabled(!settings.widgetEnabled)
+
+                Picker(strings.widgetOrder, selection: Binding(
+                    get: { settings.widgetServiceOrder.first == "codex" },
+                    set: { codexFirst in
+                        settings.widgetServiceOrder = codexFirst
+                            ? ["codex", "claudeCode"]
+                            : ["claudeCode", "codex"]
+                    }
+                )) {
+                    Text(strings.widgetOrderCodexFirst).tag(true)
+                    Text(strings.widgetOrderClaudeFirst).tag(false)
+                }
+                .pickerStyle(.segmented)
+                .disabled(!settings.widgetEnabled)
+            } header: {
+                Label(strings.widgetSection, systemImage: "macwindow.on.rectangle")
+            } footer: {
+                Text(strings.widgetFooter)
+            }
+
+            // MARK: 通知・更新
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(strings.notificationThreshold)
                         Spacer()
                         Text("\(Int(settings.thresholdPercent))%")
+                            .monospacedDigit()
                             .foregroundStyle(LimitBarTheme.muted)
                     }
                     Slider(value: $settings.thresholdPercent, in: 50...100, step: 1)
+                    Text(strings.notificationThresholdDescription)
+                        .font(.footnote)
+                        .foregroundStyle(LimitBarTheme.muted)
                 }
 
                 Picker(strings.autoRefresh, selection: $settings.refreshInterval) {
@@ -70,46 +130,33 @@ struct SettingsView: View {
                     get: { settings.notificationsEnabled },
                     set: { settings.setNotificationsEnabled($0) }
                 ))
-                    .disabled(!AppEnvironment.supportsUserNotifications)
+                .disabled(!AppEnvironment.supportsUserNotifications)
+
                 if !AppEnvironment.supportsUserNotifications {
                     Text(strings.notificationsAppOnly)
                         .font(.footnote)
                         .foregroundStyle(LimitBarTheme.muted)
                 }
+            } header: {
+                Label(strings.monitoring, systemImage: "bell.badge")
             }
 
-            Section(strings.visibility) {
+            // MARK: システム
+            Section {
                 Toggle(strings.menuBarItem, isOn: $settings.menuBarEnabled)
-                Toggle(strings.floatingWidget, isOn: $settings.widgetEnabled)
-                Toggle(strings.alwaysOnTop, isOn: $settings.widgetAlwaysOnTop)
-                    .disabled(!settings.widgetEnabled)
 
-                Picker(strings.widgetSize, selection: $settings.widgetSize) {
-                    Text("S").tag(WidgetSize.small)
-                    Text("M").tag(WidgetSize.medium)
-                }
-                .pickerStyle(.segmented)
-                .disabled(!settings.widgetEnabled)
-
-                Picker(strings.widgetPosition, selection: $settings.widgetPosition) {
-                    ForEach(WidgetPosition.allCases) { position in
-                        Text(strings.widgetPositionLabel(position)).tag(position)
-                    }
-                }
-                .disabled(!settings.widgetEnabled)
-            }
-
-            Section(strings.system) {
                 Toggle(strings.launchAtLogin, isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { settings.setLaunchAtLogin($0) }
                 ))
-                    .disabled(!AppEnvironment.supportsLaunchAtLogin)
+                .disabled(!AppEnvironment.supportsLaunchAtLogin)
+
                 if !AppEnvironment.supportsLaunchAtLogin {
                     Text(strings.launchAtLoginAppOnly)
                         .font(.footnote)
                         .foregroundStyle(LimitBarTheme.muted)
                 }
+
                 Button(strings.refreshNow) {
                     Task { await usageStore.refresh() }
                 }
@@ -121,11 +168,13 @@ struct SettingsView: View {
                         .foregroundStyle(LimitBarTheme.muted)
                         .textSelection(.enabled)
                 }
+            } header: {
+                Label(strings.system, systemImage: "gearshape")
             }
         }
         .formStyle(.grouped)
         .padding(20)
-        .frame(width: 460)
+        .frame(width: 540)
         .background(WindowLevelReader(level: .floating))
         .alert(strings.connectionErrorTitle, isPresented: Binding(
             get: { connectionErrorMessage != nil },
@@ -244,28 +293,67 @@ struct SettingsStrings {
 
     private var isJapanese: Bool { appLanguage.isJapanese }
 
+    // セクションヘッダー
     var accounts: String { isJapanese ? "アカウント" : "Accounts" }
-    var appearance: String { isJapanese ? "表示" : "Appearance" }
-    var monitoring: String { isJapanese ? "監視" : "Monitoring" }
-    var visibility: String { isJapanese ? "表示設定" : "Visibility" }
+    var displayModeSection: String { isJapanese ? "表示モード" : "Display Mode" }
+    var widgetSection: String { isJapanese ? "ウィジェット" : "Widget" }
+    var monitoring: String { isJapanese ? "通知・更新" : "Notifications & Updates" }
     var system: String { isJapanese ? "システム" : "System" }
-    var version: String { isJapanese ? "バージョン" : "Version" }
-    var language: String { isJapanese ? "言語" : "Language" }
-    var displayMode: String { isJapanese ? "表示モード" : "Display mode" }
-    var minimalDescription: String { isJapanese ? "各サービスのロゴと現在のパーセンテージのみを表示します。" : "Shows only each service logo and the current percentage." }
-    var normalDescription: String { isJapanese ? "ロゴ、ステータス、アカウント情報を含む通常表示です。" : "Shows logos, status text, and full account context." }
-    var notificationThreshold: String { isJapanese ? "通知しきい値" : "Notification threshold" }
-    var autoRefresh: String { isJapanese ? "自動更新" : "Auto refresh" }
-    var notifications: String { isJapanese ? "通知" : "Notifications" }
-    var notificationsAppOnly: String { isJapanese ? "通知はバンドルされた .app として実行した場合に利用できます。" : "Notifications are available when the app is run from a bundled .app." }
-    var menuBarItem: String { isJapanese ? "メニューバー項目" : "Menu bar item" }
+
+    // フッター・説明文
+    var accountsFooter: String {
+        isJapanese
+            ? "ローカルのログインセッションを使って使用状況を取得します。"
+            : "Usage is fetched using your local login session."
+    }
+    var widgetFooter: String {
+        isJapanese
+            ? "ウィジェットをオフにすると、以下の設定はすべて無効になります。"
+            : "When the widget is off, all settings below are disabled."
+    }
+    var notificationThresholdDescription: String {
+        isJapanese
+            ? "この使用率を超えたときに通知します。"
+            : "You will be notified when usage exceeds this level."
+    }
+
+    // 表示モード
+    var displayMode: String { isJapanese ? "モード" : "Mode" }
+    var minimalDescription: String { isJapanese ? "ロゴと使用率のみをコンパクトに表示します。" : "Shows only the logo and usage percentage." }
+    var normalDescription: String { isJapanese ? "ロゴ・ステータス・アカウント情報を表示します。" : "Shows logo, status, and account details." }
+
+    // ウィジェット
     var floatingWidget: String { isJapanese ? "フローティングウィジェット" : "Floating widget" }
     var alwaysOnTop: String { isJapanese ? "常に手前に表示" : "Always on top" }
-    var widgetSize: String { isJapanese ? "ウィジェットサイズ" : "Widget size" }
-    var widgetPosition: String { isJapanese ? "ウィジェット位置" : "Widget position" }
-    var launchAtLogin: String { isJapanese ? "ログイン時に起動" : "Launch at login" }
-    var launchAtLoginAppOnly: String { isJapanese ? "ログイン時起動はバンドルされた .app として実行した場合に利用できます。" : "Launch at login is available when the app is run from a bundled .app." }
+    var widgetSize: String { isJapanese ? "サイズ" : "Size" }
+    var widgetPosition: String { isJapanese ? "位置" : "Position" }
+    var widgetOpacity: String { isJapanese ? "背景の透明度" : "Background opacity" }
+    var widgetOrder: String { isJapanese ? "表示順" : "Display order" }
+    var widgetOrderCodexFirst: String { isJapanese ? "Codex を先に表示" : "Codex first" }
+    var widgetOrderClaudeFirst: String { isJapanese ? "Claude Code を先に表示" : "Claude Code first" }
+
+    // 通知・更新
+    var notificationThreshold: String { isJapanese ? "通知しきい値" : "Notification threshold" }
+    var autoRefresh: String { isJapanese ? "自動更新の間隔" : "Auto refresh interval" }
+    var notifications: String { isJapanese ? "通知を有効にする" : "Enable notifications" }
+    var notificationsAppOnly: String {
+        isJapanese
+            ? "通知は .app として実行したときのみ利用できます。"
+            : "Notifications are available when run from a bundled .app."
+    }
+
+    // システム
+    var menuBarItem: String { isJapanese ? "メニューバーに表示" : "Show in menu bar" }
+    var launchAtLogin: String { isJapanese ? "ログイン時に自動起動" : "Launch at login" }
+    var launchAtLoginAppOnly: String {
+        isJapanese
+            ? "自動起動は .app として実行したときのみ利用できます。"
+            : "Launch at login is available when run from a bundled .app."
+    }
     var refreshNow: String { isJapanese ? "今すぐ更新" : "Refresh now" }
+    var version: String { isJapanese ? "バージョン" : "Version" }
+
+    // アカウント関連
     var connected: String { isJapanese ? "接続済み" : "Connected" }
     var notConnected: String { isJapanese ? "未接続" : "Not connected" }
     var connect: String { isJapanese ? "接続" : "Connect" }
@@ -273,70 +361,58 @@ struct SettingsStrings {
     var cancel: String { isJapanese ? "キャンセル" : "Cancel" }
     var ok: String { isJapanese ? "OK" : "OK" }
     var connectionErrorTitle: String { isJapanese ? "接続に失敗しました" : "Connection failed" }
+
+    // Claude ログイン
     var claudeLoginTitle: String { isJapanese ? "Claude にログイン" : "Sign in to Claude" }
     var claudeLoginDescription: String {
         isJapanese
             ? "この画面で Claude にログインすると、LimitBar が使用状況取得に必要なセッションを安全に保存します。"
             : "Sign in to Claude here and LimitBar will securely save the session needed to fetch usage."
     }
-    var claudeLoginLoading: String { isJapanese ? "Claude のログイン画面を準備しています..." : "Preparing Claude login..." }
-    var claudeLoginOpening: String { isJapanese ? "Claude のログイン画面を開いています..." : "Opening Claude login..." }
-    var claudeLoginWaiting: String { isJapanese ? "Claude へのログイン完了を待っています..." : "Waiting for Claude login..." }
-    var claudeLoginSaving: String { isJapanese ? "Claude のセッションを保存しています..." : "Saving Claude session..." }
+    var claudeLoginLoading: String { isJapanese ? "ログイン画面を準備しています..." : "Preparing Claude login..." }
+    var claudeLoginOpening: String { isJapanese ? "ログイン画面を開いています..." : "Opening Claude login..." }
+    var claudeLoginWaiting: String { isJapanese ? "ログイン完了を待っています..." : "Waiting for Claude login..." }
+    var claudeLoginSaving: String { isJapanese ? "セッションを保存しています..." : "Saving Claude session..." }
     var claudeLoginConnected: String { isJapanese ? "Claude セッションを接続しました。" : "Claude session connected." }
-    var claudeLoginLoadFailed: String { isJapanese ? "Claude のログイン画面を読み込めませんでした。" : "Claude login failed to load." }
+    var claudeLoginLoadFailed: String { isJapanese ? "ログイン画面を読み込めませんでした。" : "Claude login failed to load." }
+
     func browserLoginPrompt(_ serviceName: String) -> String {
         isJapanese
-            ? "\(serviceName) のローカルログインが見つからなかったため、ブラウザを開きました。ログイン後にアプリへ戻ってもう一度接続してください。"
-            : "No local \(serviceName) login was found, so the browser was opened. Sign in there, then return to the app and try connecting again."
+            ? "\(serviceName) のローカルログインが見つからなかったため、ブラウザを開きました。ログイン後にアプリへ戻って再度接続してください。"
+            : "No local \(serviceName) login was found, so the browser was opened. Sign in, then return and connect again."
     }
 
     func minutes(_ value: Int) -> String {
-        isJapanese ? "\(value)分" : "\(value) min"
-    }
-
-    func languageLabel(_ language: AppLanguage) -> String {
-        switch language {
-        case .japanese:
-            "Japanese"
-        case .english:
-            "English"
-        }
+        isJapanese ? "\(value)分ごと" : "Every \(value) min"
     }
 
     func displayModeLabel(_ mode: DisplayMode) -> String {
         switch mode {
-        case .minimal:
-            isJapanese ? "ミニマル" : "Minimal"
-        case .normal:
-            isJapanese ? "通常" : "Normal"
+        case .minimal: isJapanese ? "ミニマル" : "Minimal"
+        case .normal: isJapanese ? "通常" : "Normal"
         }
     }
 
     func widgetPositionLabel(_ position: WidgetPosition) -> String {
         switch position {
-        case .topLeft:
-            isJapanese ? "左上" : "Top Left"
-        case .topRight:
-            isJapanese ? "右上" : "Top Right"
-        case .bottomLeft:
-            isJapanese ? "左下" : "Bottom Left"
-        case .bottomRight:
-            isJapanese ? "右下" : "Bottom Right"
+        case .topLeft: isJapanese ? "左上" : "Top Left"
+        case .topRight: isJapanese ? "右上" : "Top Right"
+        case .bottomLeft: isJapanese ? "左下" : "Bottom Left"
+        case .bottomRight: isJapanese ? "右下" : "Bottom Right"
         }
     }
 
     func accountLabel(for service: ServiceKind) -> String {
         switch service {
-        case .codex:
-            isJapanese ? "OpenAI アカウント" : "OpenAI account"
-        case .claudeCode:
-            isJapanese ? "Anthropic アカウント" : "Anthropic account"
+        case .codex: isJapanese ? "OpenAI アカウント" : "OpenAI account"
+        case .claudeCode: isJapanese ? "Anthropic アカウント" : "Anthropic account"
         }
     }
 
     func linkAccount(_ serviceName: String) -> String {
-        isJapanese ? "\(serviceName) 本体のログイン状態を使って使用状況を監視します。" : "Use the signed-in desktop session for \(serviceName) usage monitoring."
+        isJapanese
+            ? "\(serviceName) のデスクトップセッションを使って監視します。"
+            : "Monitors using the signed-in \(serviceName) desktop session."
     }
 
     func disconnectTitle(_ serviceName: String) -> String {
@@ -344,6 +420,8 @@ struct SettingsStrings {
     }
 
     func disconnectMessage(_ serviceName: String) -> String {
-        isJapanese ? "\(serviceName) のローカル監視を停止します。アプリ本体のログイン状態はそのまま残ります。" : "This stops local monitoring for \(serviceName) and keeps the desktop login session intact."
+        isJapanese
+            ? "\(serviceName) の監視を停止します。デスクトップのログイン状態はそのまま残ります。"
+            : "This stops monitoring for \(serviceName). Your desktop session remains intact."
     }
 }
