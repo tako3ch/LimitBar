@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var usageStore: UsageStore
+    var onCheckForUpdates: (() -> Void)?
     @State private var disconnectConfirmationService: ServiceKind?
     @State private var connectionErrorMessage: String?
     @State private var isShowingClaudeLogin = false
@@ -172,6 +173,12 @@ struct SettingsView: View {
 
                 Button(strings.refreshNow) {
                     Task { await usageStore.refresh() }
+                }
+
+                if AppEnvironment.supportsUpdates, let onCheckForUpdates {
+                    Button(strings.checkForUpdates) {
+                        onCheckForUpdates()
+                    }
                 }
 
                 HStack {
@@ -370,6 +377,7 @@ struct SettingsStrings {
             : "Launch at login is available when run from a bundled .app."
     }
     var refreshNow: String { isJapanese ? "今すぐ更新" : "Refresh now" }
+    var checkForUpdates: String { isJapanese ? "アップデートを確認" : "Check for Updates" }
     var version: String { isJapanese ? "バージョン" : "Version" }
 
     // アカウント関連

@@ -1,4 +1,65 @@
-![img](https://github.com/user-attachments/assets/f49103e8-10e4-4e22-911f-9cda8c5f16b8)
+# LimitBar
+
+Minimal macOS menu bar monitor for Codex and Claude Code usage.
+
+![screenshot](https://github.com/user-attachments/assets/f49103e8-10e4-4e22-911f-9cda8c5f16b8)
+
+## Download
+
+Download the latest version
+
+https://github.com/tako3ch/LimitBar/releases/latest
+
+## Features
+
+- Monitor Codex / Claude Code usage
+- Bar indicator
+- Usage limit notifications
+
+- Codex / Claude Code の利用率表示
+- メニューバー常駐 UI
+- フローティングウィジェット表示（サイズ / 位置 / 不透明度 / 表示順 / 常に手前の設定あり）
+- 使用量レポート表示（履歴グラフ）
+- 自動更新 / 手動更新
+- しきい値通知 / リセット通知
+- 日本語 / 英語表示切り替え（システム言語に追従）
+- 表示モード切り替え（minimal / normal）
+
+
+
+## Installation
+
+1 Download DMG
+2 Move LimitBar.app to Applications
+3 Launch
+
+## About Session Connection
+
+### Codex (OpenAI)
+
+Connection is attempted in the following priority order:
+
+1. **Codex CLI authentication file** — Token saved in `~/.codex/auth.json`
+2. **Supported browser session** — Login status to chatgpt.com / openai.com
+
+### Claude Code (Anthropic)
+
+Connection is attempted in the following priority order:
+
+1. **In-app login** — Log in and save the session via the "Connect" button on the settings screen
+2. **Supported browser session** — Login status to claude.ai / anthropic.com
+3. **Claude desktop app session**
+
+### Supported Browsers
+
+Chrome / Brave / Edge / Arc / Chromium
+
+## Notes
+
+- Due to its reliance on local sessions, it may not be able to retrieve usage status depending on login status or changes in service specifications.
+- Notification features and login startup are only effective when installed as an `.app` bundle.
+
+---
 
 # LimitBar
 
@@ -47,59 +108,6 @@ Chrome / Brave / Edge / Arc / Chromium
 - ローカルセッション依存のため、ログイン状態やサービス側の仕様変更によって利用状況を取得できない場合があります
 - 通知機能とログイン起動は、`.app` バンドルとしてインストールした場合のみ有効です
 
-## ライセンス
-
-MIT License — © 2026 X: [@tako3](https://x.com/tako3) / [umi.design](https://umi.design/)
-
----
-
-# LimitBar
-
-LimitBar is a resident application that allows you to check your usage of Codex and Claude Code in the macOS menu bar and a floating widget.
-
-It retrieves usage rates using login sessions existing in your local environment and displays a list of current usage rates. It can notify you when you approach a set threshold or when usage rates are reset.
-
-## Main Features
-
-- Display of Codex / Claude Code usage rates
-- Menu bar resident UI
-- Floating widget display (with settings for size / position / opacity / display order / always on top)
-- Usage report display (history graph)
-- Automatic update / Manual update
-- Threshold notification / Reset notification
-- Japanese / English display switching (follows system language)
-- Display mode switching (minimal / normal)
-
-## Requirements
-
-- macOS 14 or later
-
-## About Session Connection
-
-### Codex (OpenAI)
-
-Connection is attempted in the following priority order:
-
-1. **Codex CLI authentication file** — Token saved in `~/.codex/auth.json`
-2. **Supported browser session** — Login status to chatgpt.com / openai.com
-
-### Claude Code (Anthropic)
-
-Connection is attempted in the following priority order:
-
-1. **In-app login** — Log in and save the session via the "Connect" button on the settings screen
-2. **Supported browser session** — Login status to claude.ai / anthropic.com
-3. **Claude desktop app session**
-
-### Supported Browsers
-
-Chrome / Brave / Edge / Arc / Chromium
-
-## Notes
-
-- Due to its reliance on local sessions, it may not be able to retrieve usage status depending on login status or changes in service specifications.
-- Notification features and login startup are only effective when installed as an `.app` bundle.
-
-## License
+## ライセンス / License
 
 MIT License — © 2026 X: [@tako3](https://x.com/tako3) / [umi.design](https://umi.design/)

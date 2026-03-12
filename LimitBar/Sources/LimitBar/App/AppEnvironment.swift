@@ -7,4 +7,5 @@ enum AppEnvironment {
 
     static var supportsLaunchAtLogin: Bool { isBundledApp }
     static var supportsUserNotifications: Bool { isBundledApp }
+    static var supportsUpdates: Bool { isBundledApp }
 }

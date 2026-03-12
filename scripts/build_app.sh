@@ -94,13 +94,49 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
   <true/>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>SUFeedURL</key>
+  <string>https://tako3ch.github.io/LimitBar/appcast.xml</string>
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
 </dict>
 </plist>
 PLIST
 
+# Sparkle.framework を埋め込み
+SPARKLE_FRAMEWORK=$(find "$ROOT_DIR/.build/artifacts" -path "*/macos-arm64_x86_64/Sparkle.framework" 2>/dev/null | head -1)
+if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
+  SPARKLE_FRAMEWORK=$(find "$ROOT_DIR/.build/artifacts" -name "Sparkle.framework" -maxdepth 8 2>/dev/null | head -1)
+fi
+if [[ -d "$SPARKLE_FRAMEWORK" ]]; then
+  echo "==> Embedding Sparkle.framework from $SPARKLE_FRAMEWORK"
+  mkdir -p "$APP_DIR/Contents/Frameworks"
+  cp -R "$SPARKLE_FRAMEWORK" "$APP_DIR/Contents/Frameworks/"
+
+  # XPCServices を Contents/XPCServices/ にコピー
+  XPC_SRC="$APP_DIR/Contents/Frameworks/Sparkle.framework/XPCServices"
+  if [[ -d "$XPC_SRC" ]]; then
+    mkdir -p "$APP_DIR/Contents/XPCServices"
+    cp -R "$XPC_SRC/"*.xpc "$APP_DIR/Contents/XPCServices/"
+  fi
+else
+  echo "WARNING: Sparkle.framework not found — skipping embed" >&2
+fi
+
 echo "==> Code signing app bundle with identity: $SIGN_IDENTITY"
 xattr -cr "$APP_DIR"
-codesign --force --deep --options runtime \
+
+# Sparkle の XPC サービスと framework を先に署名
+if [[ -d "$APP_DIR/Contents/XPCServices" ]]; then
+  for xpc in "$APP_DIR/Contents/XPCServices/"*.xpc; do
+    codesign --force --options runtime --sign "$SIGN_IDENTITY" "$xpc"
+  done
+fi
+if [[ -d "$APP_DIR/Contents/Frameworks/Sparkle.framework" ]]; then
+  codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+    "$APP_DIR/Contents/Frameworks/Sparkle.framework"
+fi
+
+codesign --force --options runtime \
   --entitlements "$ENTITLEMENTS" \
   --sign "$SIGN_IDENTITY" \
   "$APP_DIR"

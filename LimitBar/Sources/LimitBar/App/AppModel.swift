@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+@preconcurrency import Sparkle
 import SwiftUI
 
 @MainActor
@@ -12,6 +13,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var menuBarTitle: String
     @Published var menuBarEnabled: Bool
 
+    private let updaterController: SPUStandardUpdaterController?
     private var cancellables: Set<AnyCancellable> = []
     private var hasStarted = false
     private var reportWindow: NSWindow?
@@ -21,6 +23,9 @@ final class AppModel: ObservableObject {
         self.settings = settings
         self.historyStore = UsageHistoryStore()
         self.widgetController = WidgetWindowController()
+        self.updaterController = AppEnvironment.supportsUpdates
+            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+            : nil
         self.usageStore = UsageStore(
             settings: settings,
             providers: [
@@ -100,6 +105,14 @@ final class AppModel: ObservableObject {
         hasStarted = true
         usageStore.start()
         widgetController.update(using: usageStore, settings: settings)
+    }
+
+    func checkForUpdates() {
+        updaterController?.updater.checkForUpdates()
+    }
+
+    var canCheckForUpdates: Bool {
+        updaterController?.updater.canCheckForUpdates ?? false
     }
 
     func showReportWindow() {

@@ -22,7 +22,11 @@ struct LimitBarApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView(settings: model.settings, usageStore: model.usageStore)
+            SettingsView(
+                settings: model.settings,
+                usageStore: model.usageStore,
+                onCheckForUpdates: { model.checkForUpdates() }
+            )
         }
         .defaultSize(width: 540, height: 560)
     }
