@@ -87,6 +87,16 @@ final class UsageStore: ObservableObject {
         lastRefreshError = results.1.isEmpty ? nil : results.1.joined(separator: "\n")
     }
 
+    func disconnect(_ service: ServiceKind) {
+        snapshots.removeAll { $0.service == service }
+        previousPercent[service] = nil
+        didNotifyLimit[service] = nil
+
+        if snapshots.isEmpty {
+            lastRefreshError = nil
+        }
+    }
+
     private func scheduleTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: settings.refreshInterval, repeats: true) { [weak self] _ in

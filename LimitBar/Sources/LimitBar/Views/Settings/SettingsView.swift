@@ -130,7 +130,7 @@ struct SettingsView: View {
                 message: Text(strings.disconnectMessage(service.displayName)),
                 primaryButton: .destructive(Text(strings.disconnect)) {
                     settings.disconnect(service)
-                    Task { await usageStore.refresh() }
+                    usageStore.disconnect(service)
                 },
                 secondaryButton: .cancel(Text(strings.cancel))
             )

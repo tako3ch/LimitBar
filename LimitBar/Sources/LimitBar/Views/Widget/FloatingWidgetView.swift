@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct FloatingWidgetView: View {
@@ -50,6 +51,8 @@ struct FloatingWidgetView: View {
         .background(
             widgetBackground
         )
+        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .onTapGesture(count: 2, perform: openSettings)
     }
 
     private var widgetWidth: CGFloat {
@@ -112,6 +115,11 @@ struct FloatingWidgetView: View {
         }
         .compositingGroup()
         .shadow(color: .black.opacity(0.22), radius: 24, y: 8)
+    }
+
+    private func openSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 }
 
