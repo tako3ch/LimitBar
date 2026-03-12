@@ -1,50 +1,67 @@
+import AppKit
 import SwiftUI
 
 struct ServiceLogoMark: View {
     let service: ServiceKind
     var size: CGFloat = 30
 
-    private var gradient: LinearGradient {
+    private var imageName: String {
         switch service {
-        case .codex:
-            LinearGradient(
-                colors: [Color(red: 0.43, green: 0.73, blue: 0.92), Color(red: 0.24, green: 0.40, blue: 0.88)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .claudeCode:
-            LinearGradient(
-                colors: [Color(red: 0.92, green: 0.66, blue: 0.34), Color(red: 0.82, green: 0.34, blue: 0.25)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        case .codex: "openai"
+        case .claudeCode: "claude"
         }
     }
 
-    private var shadowColor: Color {
+    private var accentColor: Color {
         switch service {
-        case .codex:
-            Color(red: 0.22, green: 0.40, blue: 0.88).opacity(0.35)
-        case .claudeCode:
-            Color(red: 0.74, green: 0.30, blue: 0.24).opacity(0.35)
+        case .codex: Color(red: 0.43, green: 0.73, blue: 0.92)
+        case .claudeCode: Color(red: 0.92, green: 0.66, blue: 0.34)
         }
+    }
+
+    private var fallbackMonogram: String {
+        service.logoText
+    }
+
+    private var logoImage: NSImage? {
+        guard let url = Bundle.module.url(forResource: imageName, withExtension: "png") else {
+            return nil
+        }
+        return NSImage(contentsOf: url)
     }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
-                .fill(gradient)
+                .fill(accentColor.opacity(0.14))
 
-            Text(service.logoText)
-                .font(.system(size: size * 0.4, weight: .black, design: .rounded))
-                .foregroundStyle(.white.opacity(0.94))
+            if let logoImage {
+                Image(nsImage: logoImage)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(size * 0.18)
+                    .opacity(0.96)
+            } else {
+                Text(fallbackMonogram)
+                    .font(.system(size: size * 0.34, weight: .semibold, design: .rounded))
+                    .foregroundStyle(accentColor.opacity(0.95))
+            }
+
+            RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.08), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         }
         .frame(width: size, height: size)
         .overlay(
             RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
                 .stroke(Color.white.opacity(0.15), lineWidth: 1)
         )
-        .shadow(color: shadowColor, radius: 12, y: 5)
+        .shadow(color: accentColor.opacity(0.22), radius: 12, y: 5)
         .accessibilityLabel(service.displayName)
     }
 }

@@ -76,6 +76,24 @@ enum WidgetSize: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
 }
 
+enum WidgetPosition: String, CaseIterable, Codable, Identifiable {
+    case topLeft
+    case topRight
+    case bottomLeft
+    case bottomRight
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .topLeft: "Top Left"
+        case .topRight: "Top Right"
+        case .bottomLeft: "Bottom Left"
+        case .bottomRight: "Bottom Right"
+        }
+    }
+}
+
 enum DisplayMode: String, CaseIterable, Codable, Identifiable {
     case minimal
     case normal

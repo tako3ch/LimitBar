@@ -13,6 +13,9 @@ let package = Package(
         .executableTarget(
             name: "LimitBar",
             path: "LimitBar/Sources/LimitBar",
+            resources: [
+                .process("Resources")
+            ],
             linkerSettings: [
                 .linkedLibrary("sqlite3")
             ]

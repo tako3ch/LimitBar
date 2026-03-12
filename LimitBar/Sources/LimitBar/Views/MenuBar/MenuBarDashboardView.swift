@@ -1,8 +1,13 @@
 import SwiftUI
+import AppKit
 
 struct MenuBarDashboardView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var usageStore: UsageStore
+
+    private var strings: AppStrings {
+        AppStrings(language: settings.appLanguage)
+    }
 
     var body: some View {
         ZStack {
@@ -16,10 +21,10 @@ struct MenuBarDashboardView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("LimitBar")
+                        Text(strings.appTitle)
                             .font(.system(size: 22, weight: .semibold))
                             .foregroundStyle(LimitBarTheme.strongText)
-                        Text(settings.displayMode == .minimal ? "Minimal mode" : "Usage pulse for Codex and Claude Code")
+                        Text(settings.displayMode == .minimal ? strings.minimalMode : strings.usagePulseDescription)
                             .font(.system(size: 12, weight: .regular))
                             .foregroundStyle(LimitBarTheme.muted)
                     }
@@ -50,10 +55,10 @@ struct MenuBarDashboardView: View {
                 if usageStore.snapshots.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Connect a service")
+                            Text(strings.connectService)
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(LimitBarTheme.strongText)
-                            Text("Open Settings to link your Codex or Claude Code account.")
+                            Text(strings.connectServiceDescription)
                                 .font(.system(size: 12, weight: .regular))
                                 .foregroundStyle(LimitBarTheme.muted)
                         }
@@ -69,6 +74,15 @@ struct MenuBarDashboardView: View {
                         .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(LimitBarTheme.danger)
                 }
+
+                Divider()
+
+                Button(strings.quitApp) {
+                    NSApplication.shared.terminate(nil)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(LimitBarTheme.muted)
             }
             .padding(18)
         }

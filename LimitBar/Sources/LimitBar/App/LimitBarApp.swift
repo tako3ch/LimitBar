@@ -15,8 +15,7 @@ struct LimitBarApp: App {
     var body: some Scene {
         MenuBarExtra(model.menuBarTitle, systemImage: "gauge.with.needle.fill", isInserted: Binding(
             get: { model.settings.menuBarEnabled },
-            // set は Scene 更新サイクル中に呼ばれる場合があるため Task で非同期化する
-            set: { value in Task { @MainActor in model.settings.menuBarEnabled = value } }
+            set: { value in model.settings.menuBarEnabled = value }
         )) {
             MenuBarDashboardView(settings: model.settings, usageStore: model.usageStore)
         }

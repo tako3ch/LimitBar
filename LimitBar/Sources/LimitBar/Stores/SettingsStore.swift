@@ -9,11 +9,23 @@ final class SettingsStore: ObservableObject {
     @Published var widgetAlwaysOnTop: Bool { didSet { save("widgetAlwaysOnTop", value: widgetAlwaysOnTop) } }
     @Published var codexConnected: Bool { didSet { save("codexConnected", value: codexConnected) } }
     @Published var claudeConnected: Bool { didSet { save("claudeConnected", value: claudeConnected) } }
+    @Published var codexAccountLabel: String? { didSet { saveOptional("codexAccountLabel", value: codexAccountLabel) } }
+    @Published var claudeAccountLabel: String? { didSet { saveOptional("claudeAccountLabel", value: claudeAccountLabel) } }
     @Published var launchAtLogin: Bool
     @Published var notificationsEnabled: Bool
+    @Published var appLanguage: AppLanguage {
+        didSet {
+            save("appLanguage", value: appLanguage.rawValue)
+        }
+    }
     @Published var widgetSize: WidgetSize {
         didSet {
             save("widgetSize", value: widgetSize.rawValue)
+        }
+    }
+    @Published var widgetPosition: WidgetPosition {
+        didSet {
+            save("widgetPosition", value: widgetPosition.rawValue)
         }
     }
     @Published var displayMode: DisplayMode {
@@ -23,22 +35,33 @@ final class SettingsStore: ObservableObject {
     }
 
     private let defaults: UserDefaults
+    private let credentialStore: CredentialStore
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        credentialStore: CredentialStore = .shared
+    ) {
         self.defaults = defaults
+        self.credentialStore = credentialStore
         thresholdPercent = defaults.object(forKey: "thresholdPercent") as? Double ?? 90
         refreshInterval = defaults.object(forKey: "refreshInterval") as? Double ?? 300
         menuBarEnabled = defaults.object(forKey: "menuBarEnabled") as? Bool ?? true
         widgetEnabled = defaults.object(forKey: "widgetEnabled") as? Bool ?? true
         widgetAlwaysOnTop = defaults.object(forKey: "widgetAlwaysOnTop") as? Bool ?? false
-        codexConnected = defaults.object(forKey: "codexConnected") as? Bool ?? true
-        claudeConnected = defaults.object(forKey: "claudeConnected") as? Bool ?? true
+        codexAccountLabel = defaults.string(forKey: "codexAccountLabel")
+        claudeAccountLabel = defaults.string(forKey: "claudeAccountLabel")
+        codexConnected = credentialStore.hasCredential(for: .codex)
+        claudeConnected = credentialStore.hasCredential(for: .claudeCode)
         let storedLaunchAtLogin = defaults.object(forKey: "launchAtLogin") as? Bool ?? false
         launchAtLogin = AppEnvironment.supportsLaunchAtLogin ? storedLaunchAtLogin : false
         let storedNotificationsEnabled = defaults.object(forKey: "notificationsEnabled") as? Bool ?? true
         notificationsEnabled = AppEnvironment.supportsUserNotifications ? storedNotificationsEnabled : false
+        let storedLanguage = defaults.string(forKey: "appLanguage")
+        appLanguage = storedLanguage.flatMap(AppLanguage.init(rawValue:)) ?? AppLanguage.defaultValue()
         let storedSize = defaults.string(forKey: "widgetSize") ?? WidgetSize.small.rawValue
         widgetSize = WidgetSize(rawValue: storedSize) ?? .small
+        let storedWidgetPosition = defaults.string(forKey: "widgetPosition") ?? WidgetPosition.topRight.rawValue
+        widgetPosition = WidgetPosition(rawValue: storedWidgetPosition) ?? .topRight
         let storedDisplayMode = defaults.string(forKey: "displayMode") ?? DisplayMode.normal.rawValue
         displayMode = DisplayMode(rawValue: storedDisplayMode) ?? .normal
 
@@ -47,6 +70,12 @@ final class SettingsStore: ObservableObject {
         }
         if !AppEnvironment.supportsUserNotifications && storedNotificationsEnabled {
             defaults.set(false, forKey: "notificationsEnabled")
+        }
+        if !codexConnected {
+            codexAccountLabel = nil
+        }
+        if !claudeConnected {
+            claudeAccountLabel = nil
         }
     }
 
@@ -77,11 +106,36 @@ final class SettingsStore: ObservableObject {
     }
 
     func setConnection(_ service: ServiceKind, isConnected: Bool) {
+        if isConnected {
+            return
+        }
+        disconnect(service)
+    }
+
+    func connect(_ service: ServiceKind, label: String, apiKey: String) throws {
+        let credential = AccountCredential(label: label, apiKey: apiKey)
+        try credentialStore.saveCredential(credential, for: service)
+
         switch service {
         case .codex:
-            codexConnected = isConnected
+            codexConnected = true
+            codexAccountLabel = normalizedLabel(from: label, service: service)
         case .claudeCode:
-            claudeConnected = isConnected
+            claudeConnected = true
+            claudeAccountLabel = normalizedLabel(from: label, service: service)
+        }
+    }
+
+    func disconnect(_ service: ServiceKind) {
+        try? credentialStore.deleteCredential(for: service)
+
+        switch service {
+        case .codex:
+            codexConnected = false
+            codexAccountLabel = nil
+        case .claudeCode:
+            claudeConnected = false
+            claudeAccountLabel = nil
         }
     }
 
@@ -89,7 +143,33 @@ final class SettingsStore: ObservableObject {
         ServiceKind.allCases.filter(isConnected)
     }
 
+    func accountLabel(for service: ServiceKind) -> String? {
+        switch service {
+        case .codex:
+            codexAccountLabel
+        case .claudeCode:
+            claudeAccountLabel
+        }
+    }
+
+    func apiKey(for service: ServiceKind) -> String? {
+        try? credentialStore.loadCredential(for: service)?.apiKey
+    }
+
     private func save(_ key: String, value: Any) {
         defaults.set(value, forKey: key)
+    }
+
+    private func saveOptional(_ key: String, value: String?) {
+        if let value {
+            defaults.set(value, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
+    private func normalizedLabel(from label: String, service: ServiceKind) -> String {
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? service.accountLabel : trimmed
     }
 }

@@ -44,15 +44,17 @@ final class AppModel: ObservableObject {
 
         usageStore.$snapshots
             .combineLatest(
-                settings.$widgetEnabled.combineLatest(
-                    settings.$widgetAlwaysOnTop,
-                    settings.$widgetSize,
-                    settings.$displayMode
-                )
+                settings.$widgetEnabled
+                    .combineLatest(settings.$widgetAlwaysOnTop)
+                    .combineLatest(settings.$widgetSize)
+                    .combineLatest(settings.$widgetPosition)
+                    .combineLatest(settings.$displayMode)
             )
             .sink { [weak self] _, _ in
                 guard let self else { return }
-                self.widgetController.update(using: self.usageStore, settings: self.settings)
+                DispatchQueue.main.async {
+                    self.widgetController.update(using: self.usageStore, settings: self.settings)
+                }
             }
             .store(in: &cancellables)
     }
@@ -70,6 +72,6 @@ final class AppModel: ObservableObject {
             guard let value = values[service] else { return nil }
             return "\(service.shortLabel) \(value)%"
         }
-        return labels.isEmpty ? "Setup" : labels.joined(separator: " / ")
+        return labels.isEmpty ? AppStrings(language: settings.appLanguage).setup : labels.joined(separator: " / ")
     }
 }
