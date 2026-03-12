@@ -42,6 +42,9 @@ mkdir -p "$APP_DIR/Contents/Resources"
 cp "$EXECUTABLE_PATH" "$APP_DIR/Contents/MacOS/$APP_NAME"
 chmod +x "$APP_DIR/Contents/MacOS/$APP_NAME"
 
+# Sparkle.framework を検索するための rpath を追加
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_DIR/Contents/MacOS/$APP_NAME"
+
 if [[ -d "$RESOURCE_BUNDLE_PATH" ]]; then
   cp -R "$RESOURCE_BUNDLE_PATH" "$APP_DIR/Contents/Resources/"
 fi
