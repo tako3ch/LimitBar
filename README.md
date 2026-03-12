@@ -6,6 +6,7 @@ Minimal macOS menu bar monitor for Codex and Claude Code usage.
 
 - Open `Package.swift` in Xcode.
 - Run the `LimitBar` executable target on macOS.
+- `Launch at login` is disabled in this mode because Xcode runs the package as a plain executable, not a bundled `.app`.
 
 ## Current State
 

@@ -8,6 +8,7 @@ final class AppModel: ObservableObject {
     let widgetController: WidgetWindowController
 
     private var cancellables: Set<AnyCancellable> = []
+    private var hasStarted = false
 
     init() {
         let settings = SettingsStore()
@@ -25,13 +26,31 @@ final class AppModel: ObservableObject {
             ]
         )
 
+        // objectWillChange の転送は DispatchQueue.main.async で次のランループまで遅延させる。
+        // 同期転送すると SwiftUI のビュー更新サイクル中に別の publish が発火し
+        // "Publishing changes from within view updates" 警告が出るため。
+        // Task { @MainActor } より DispatchQueue.main.async の方が確実に defer される。
+        settings.objectWillChange
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.objectWillChange.send() }
+            }
+            .store(in: &cancellables)
+
+        usageStore.objectWillChange
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.objectWillChange.send() }
+            }
+            .store(in: &cancellables)
+
         usageStore.$snapshots
             .combineLatest(
-                settings.$widgetEnabled,
-                settings.$widgetAlwaysOnTop,
-                settings.$widgetSize
+                settings.$widgetEnabled.combineLatest(
+                    settings.$widgetAlwaysOnTop,
+                    settings.$widgetSize,
+                    settings.$displayMode
+                )
             )
-            .sink { [weak self] _, _, _, _ in
+            .sink { [weak self] _, _ in
                 guard let self else { return }
                 self.widgetController.update(using: self.usageStore, settings: self.settings)
             }
@@ -39,14 +58,18 @@ final class AppModel: ObservableObject {
     }
 
     func start() {
+        guard !hasStarted else { return }
+        hasStarted = true
         usageStore.start()
         widgetController.update(using: usageStore, settings: settings)
     }
 
     var menuBarTitle: String {
         let values = Dictionary(uniqueKeysWithValues: usageStore.snapshots.map { ($0.service, Int($0.clampedPercent)) })
-        let codex = values[.codex] ?? 0
-        let claude = values[.claudeCode] ?? 0
-        return "C \(codex)% / X \(claude)%"
+        let labels = settings.connectedServices.compactMap { service -> String? in
+            guard let value = values[service] else { return nil }
+            return "\(service.shortLabel) \(value)%"
+        }
+        return labels.isEmpty ? "Setup" : labels.joined(separator: " / ")
     }
 }

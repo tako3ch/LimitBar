@@ -45,9 +45,16 @@ final class UsageStore: ObservableObject {
         isRefreshing = true
         defer { isRefreshing = false }
 
+        let activeProviders = providers.filter { settings.isConnected($0.service) }
+        guard !activeProviders.isEmpty else {
+            lastRefreshError = nil
+            snapshots = []
+            return
+        }
+
         do {
             let results = try await withThrowingTaskGroup(of: UsageSnapshot.self) { group in
-                for provider in providers {
+                for provider in activeProviders {
                     group.addTask {
                         try await provider.fetchUsage()
                     }
@@ -58,7 +65,7 @@ final class UsageStore: ObservableObject {
                     snapshots.append(snapshot)
                 }
                 return snapshots.sorted {
-                    ServiceKind.allCases.firstIndex(of: $0.service)! < ServiceKind.allCases.firstIndex(of: $1.service)!
+                    (ServiceKind.allCases.firstIndex(of: $0.service) ?? 0) < (ServiceKind.allCases.firstIndex(of: $1.service) ?? 0)
                 }
             }
 

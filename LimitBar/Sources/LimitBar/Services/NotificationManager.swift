@@ -8,6 +8,7 @@ final class NotificationManager {
     private init() {}
 
     func requestAuthorizationIfNeeded() async {
+        guard AppEnvironment.supportsUserNotifications else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .notDetermined else { return }
@@ -15,6 +16,7 @@ final class NotificationManager {
     }
 
     func post(title: String, body: String) {
+        guard AppEnvironment.supportsUserNotifications else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body

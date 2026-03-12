@@ -7,15 +7,18 @@ struct LimitBarApp: App {
     init() {
         let model = AppModel()
         _model = StateObject(wrappedValue: model)
-        model.start()
+        Task { @MainActor in
+            model.start()
+        }
     }
 
     var body: some Scene {
         MenuBarExtra(model.menuBarTitle, systemImage: "gauge.with.needle.fill", isInserted: Binding(
             get: { model.settings.menuBarEnabled },
-            set: { model.settings.menuBarEnabled = $0 }
+            // set は Scene 更新サイクル中に呼ばれる場合があるため Task で非同期化する
+            set: { value in Task { @MainActor in model.settings.menuBarEnabled = value } }
         )) {
-            MenuBarDashboardView(usageStore: model.usageStore)
+            MenuBarDashboardView(settings: model.settings, usageStore: model.usageStore)
         }
         .menuBarExtraStyle(.window)
 

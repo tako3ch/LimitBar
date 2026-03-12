@@ -9,7 +9,7 @@ enum ServiceKind: String, CaseIterable, Identifiable, Codable {
     var shortLabel: String {
         switch self {
         case .codex: "C"
-        case .claudeCode: "X"
+        case .claudeCode: "CC"
         }
     }
 
@@ -17,6 +17,20 @@ enum ServiceKind: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .codex: "Codex"
         case .claudeCode: "Claude Code"
+        }
+    }
+
+    var logoText: String {
+        switch self {
+        case .codex: "C"
+        case .claudeCode: "CC"
+        }
+    }
+
+    var accountLabel: String {
+        switch self {
+        case .codex: "OpenAI account"
+        case .claudeCode: "Anthropic account"
         }
     }
 
@@ -60,4 +74,15 @@ enum WidgetSize: String, CaseIterable, Codable, Identifiable {
     case medium
 
     var id: String { rawValue }
+}
+
+enum DisplayMode: String, CaseIterable, Codable, Identifiable {
+    case minimal
+    case normal
+
+    var id: String { rawValue }
+
+    var label: String {
+        rawValue.capitalized
+    }
 }
