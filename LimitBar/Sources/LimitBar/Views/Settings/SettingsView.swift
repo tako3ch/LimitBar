@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -149,6 +150,9 @@ struct SettingsView: View {
                 try settings.connect(service)
                 connectionErrorMessage = nil
                 Task { await usageStore.refresh() }
+            } catch UsageProviderError.missingLocalSession(let missingService) where AppEnvironment.isBundledApp {
+                NSWorkspace.shared.open(missingService.loginURL)
+                connectionErrorMessage = strings.browserLoginPrompt(missingService.displayName)
             } catch {
                 connectionErrorMessage = error.localizedDescription
             }
@@ -236,6 +240,11 @@ private struct SettingsStrings {
     var cancel: String { isJapanese ? "キャンセル" : "Cancel" }
     var ok: String { isJapanese ? "OK" : "OK" }
     var connectionErrorTitle: String { isJapanese ? "接続に失敗しました" : "Connection failed" }
+    func browserLoginPrompt(_ serviceName: String) -> String {
+        isJapanese
+            ? "\(serviceName) のローカルログインが見つからなかったため、ブラウザを開きました。ログイン後にアプリへ戻ってもう一度接続してください。"
+            : "No local \(serviceName) login was found, so the browser was opened. Sign in there, then return to the app and try connecting again."
+    }
 
     func minutes(_ value: Int) -> String {
         isJapanese ? "\(value)分" : "\(value) min"

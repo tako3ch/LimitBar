@@ -40,6 +40,15 @@ enum ServiceKind: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "bolt.horizontal.circle.fill"
         }
     }
+
+    var loginURL: URL {
+        switch self {
+        case .codex:
+            URL(string: "https://chatgpt.com/auth/login")!
+        case .claudeCode:
+            URL(string: "https://claude.ai/login")!
+        }
+    }
 }
 
 enum UsageStatus: String, Codable {
