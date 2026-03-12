@@ -6,6 +6,7 @@ final class AppModel: ObservableObject {
     let settings: SettingsStore
     let usageStore: UsageStore
     let widgetController: WidgetWindowController
+    @Published private(set) var menuBarTitle: String
 
     private var cancellables: Set<AnyCancellable> = []
     private var hasStarted = false
@@ -21,22 +22,26 @@ final class AppModel: ObservableObject {
                 AnyUsageProvider(ClaudeCodeUsageProvider())
             ]
         )
+        self.menuBarTitle = AppModel.makeMenuBarTitle(
+            snapshots: [],
+            settings: settings
+        )
 
-        // objectWillChange の転送は DispatchQueue.main.async で次のランループまで遅延させる。
-        // 同期転送すると SwiftUI のビュー更新サイクル中に別の publish が発火し
-        // "Publishing changes from within view updates" 警告が出るため。
-        // Task { @MainActor } より DispatchQueue.main.async の方が確実に defer される。
-        settings.objectWillChange
-            .sink { [weak self] _ in
-                DispatchQueue.main.async { self?.objectWillChange.send() }
-            }
-            .store(in: &cancellables)
-
-        usageStore.objectWillChange
-            .sink { [weak self] _ in
-                DispatchQueue.main.async { self?.objectWillChange.send() }
-            }
-            .store(in: &cancellables)
+        Publishers.CombineLatest4(
+            usageStore.$snapshots,
+            settings.$appLanguage,
+            settings.$codexConnected,
+            settings.$claudeConnected
+        )
+        .map { [weak settings] snapshots, _, _, _ in
+            guard let settings else { return "" }
+            return AppModel.makeMenuBarTitle(snapshots: snapshots, settings: settings)
+        }
+        .removeDuplicates()
+        .sink { [weak self] title in
+            self?.menuBarTitle = title
+        }
+        .store(in: &cancellables)
 
         usageStore.$snapshots
             .combineLatest(
@@ -62,8 +67,8 @@ final class AppModel: ObservableObject {
         widgetController.update(using: usageStore, settings: settings)
     }
 
-    var menuBarTitle: String {
-        let values = Dictionary(uniqueKeysWithValues: usageStore.snapshots.map { ($0.service, Int($0.clampedPercent)) })
+    private static func makeMenuBarTitle(snapshots: [UsageSnapshot], settings: SettingsStore) -> String {
+        let values = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.service, Int($0.clampedPercent)) })
         let labels = settings.connectedServices.compactMap { service -> String? in
             guard let value = values[service] else { return nil }
             return "\(service.shortLabel) \(value)%"

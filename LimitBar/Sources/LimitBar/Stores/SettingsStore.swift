@@ -38,7 +38,7 @@ final class SettingsStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         thresholdPercent = defaults.object(forKey: "thresholdPercent") as? Double ?? 90
-        refreshInterval = defaults.object(forKey: "refreshInterval") as? Double ?? 300
+        refreshInterval = defaults.object(forKey: "refreshInterval") as? Double ?? 900
         menuBarEnabled = defaults.object(forKey: "menuBarEnabled") as? Bool ?? true
         widgetEnabled = defaults.object(forKey: "widgetEnabled") as? Bool ?? true
         widgetAlwaysOnTop = defaults.object(forKey: "widgetAlwaysOnTop") as? Bool ?? false
@@ -133,6 +133,7 @@ final class SettingsStore: ObservableObject {
         case .claudeCode:
             claudeConnected = false
             claudeAccountLabel = nil
+            try? ClaudeWebSessionStore.shared.deleteSession()
         }
     }
 

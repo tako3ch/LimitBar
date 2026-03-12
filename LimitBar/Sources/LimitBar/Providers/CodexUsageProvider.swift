@@ -3,11 +3,23 @@ import Foundation
 struct CodexUsageProvider: UsageProvider {
     let service: ServiceKind = .codex
 
+    static let browserUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+
     func fetchUsage() async throws -> UsageSnapshot {
         let session = try LocalAccountSessionDetector.shared.detectSession(for: service)
-        let request = try session.makeRequest(url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try UsageProviderError.validate(response: response, service: service)
+        let data: Data
+
+        if session.bearerToken != nil {
+            let request = try session.makeRequest(
+                url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!,
+                userAgent: Self.browserUserAgent
+            )
+            let (responseData, response) = try await URLSession.shared.data(for: request)
+            try UsageProviderError.validate(response: response, service: service)
+            data = responseData
+        } else {
+            data = try await CodexWebUsageFetcher.shared.fetchUsage(using: session)
+        }
 
         let payload = try JSONDecoder().decode(CodexUsagePayload.self, from: data)
         let window = payload.rateLimit.primaryWindow ?? payload.rateLimit.secondaryWindow

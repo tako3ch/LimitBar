@@ -11,7 +11,7 @@ struct ClaudeCodeUsageProvider: UsageProvider {
 
         let request = try session.makeRequest(
             url: URL(string: "https://claude.ai/api/organizations/\(organizationID)/usage")!,
-            userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.1 Safari/537.36"
+            userAgent: ClaudeWebLoginService.userAgent
         )
         let (data, response) = try await URLSession.shared.data(for: request)
         try validateClaudeResponse(data: data, response: response)

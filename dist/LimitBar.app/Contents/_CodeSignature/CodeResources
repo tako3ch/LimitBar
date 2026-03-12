@@ -4,6 +4,10 @@
 <dict>
 	<key>files</key>
 	<dict>
+		<key>Resources/LimitBar_LimitBar.bundle/AppVersion.plist</key>
+		<data>
+		UF7KKgPBgeBzDnG+l+fa5UHmvCM=
+		</data>
 		<key>Resources/LimitBar_LimitBar.bundle/claude.png</key>
 		<data>
 		3ak8zFpgjXoY52wfTEkPgYz8WSw=
@@ -15,6 +19,13 @@
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Resources/LimitBar_LimitBar.bundle/AppVersion.plist</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			yVIu4I3hzN3Xm4GQlyJA7qXWlXJhjQl/Opn1PnSUmMI=
+			</data>
+		</dict>
 		<key>Resources/LimitBar_LimitBar.bundle/claude.png</key>
 		<dict>
 			<key>hash2</key>

@@ -4,18 +4,18 @@ struct ProgressPill: View {
     let percent: Double
     let tint: Color
 
-    var body: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let fillWidth = max(width * (percent / 100), 8)
+    private var fillScale: CGFloat {
+        let normalized = min(max(percent / 100, 0), 1)
+        return max(normalized, 0.08)
+    }
 
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.white.opacity(0.08))
-                Capsule()
-                    .fill(tint.opacity(0.9))
-                    .frame(width: min(fillWidth, width))
-            }
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Capsule()
+                .fill(Color.white.opacity(0.08))
+            Capsule()
+                .fill(tint.opacity(0.9))
+                .scaleEffect(x: fillScale, y: 1, anchor: .leading)
         }
         .frame(height: 7)
     }

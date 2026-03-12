@@ -104,6 +104,7 @@ final class UsageStore: ObservableObject {
                 await self?.refresh()
             }
         }
+        timer?.tolerance = min(max(settings.refreshInterval * 0.2, 5), 60)
     }
 
     private func handleNotifications(for snapshots: [UsageSnapshot]) {

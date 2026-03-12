@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObservedObject var usageStore: UsageStore
     @State private var disconnectConfirmationService: ServiceKind?
     @State private var connectionErrorMessage: String?
+    @State private var isShowingClaudeLogin = false
 
     var body: some View {
         Form {
@@ -59,6 +60,7 @@ struct SettingsView: View {
                     Text(strings.minutes(5)).tag(TimeInterval(300))
                     Text(strings.minutes(10)).tag(TimeInterval(600))
                     Text(strings.minutes(15)).tag(TimeInterval(900))
+                    Text(strings.minutes(30)).tag(TimeInterval(1800))
                 }
                 .onChange(of: settings.refreshInterval) { _, _ in
                     usageStore.rescheduleTimer()
@@ -111,6 +113,14 @@ struct SettingsView: View {
                 Button(strings.refreshNow) {
                     Task { await usageStore.refresh() }
                 }
+
+                HStack {
+                    Text(strings.version)
+                    Spacer()
+                    Text(AppVersion.current.displayString)
+                        .foregroundStyle(LimitBarTheme.muted)
+                        .textSelection(.enabled)
+                }
             }
         }
         .formStyle(.grouped)
@@ -136,6 +146,16 @@ struct SettingsView: View {
                 secondaryButton: .cancel(Text(strings.cancel))
             )
         }
+        .sheet(isPresented: $isShowingClaudeLogin) {
+            ClaudeLoginSheet(
+                strings: strings,
+                onCancel: { isShowingClaudeLogin = false },
+                onComplete: {
+                    isShowingClaudeLogin = false
+                    completeClaudeConnection()
+                }
+            )
+        }
     }
 
     private var strings: SettingsStrings {
@@ -150,12 +170,24 @@ struct SettingsView: View {
                 try settings.connect(service)
                 connectionErrorMessage = nil
                 Task { await usageStore.refresh() }
+            } catch UsageProviderError.missingLocalSession(.claudeCode) {
+                isShowingClaudeLogin = true
             } catch UsageProviderError.missingLocalSession(let missingService) where AppEnvironment.isBundledApp {
                 NSWorkspace.shared.open(missingService.loginURL)
                 connectionErrorMessage = strings.browserLoginPrompt(missingService.displayName)
             } catch {
                 connectionErrorMessage = error.localizedDescription
             }
+        }
+    }
+
+    private func completeClaudeConnection() {
+        do {
+            try settings.connect(.claudeCode)
+            connectionErrorMessage = nil
+            Task { await usageStore.refresh() }
+        } catch {
+            connectionErrorMessage = error.localizedDescription
         }
     }
 }
@@ -207,7 +239,7 @@ private struct AccountIntegrationRow: View {
     }
 }
 
-private struct SettingsStrings {
+struct SettingsStrings {
     let appLanguage: AppLanguage
 
     private var isJapanese: Bool { appLanguage.isJapanese }
@@ -217,6 +249,7 @@ private struct SettingsStrings {
     var monitoring: String { isJapanese ? "監視" : "Monitoring" }
     var visibility: String { isJapanese ? "表示設定" : "Visibility" }
     var system: String { isJapanese ? "システム" : "System" }
+    var version: String { isJapanese ? "バージョン" : "Version" }
     var language: String { isJapanese ? "言語" : "Language" }
     var displayMode: String { isJapanese ? "表示モード" : "Display mode" }
     var minimalDescription: String { isJapanese ? "各サービスのロゴと現在のパーセンテージのみを表示します。" : "Shows only each service logo and the current percentage." }
@@ -240,6 +273,18 @@ private struct SettingsStrings {
     var cancel: String { isJapanese ? "キャンセル" : "Cancel" }
     var ok: String { isJapanese ? "OK" : "OK" }
     var connectionErrorTitle: String { isJapanese ? "接続に失敗しました" : "Connection failed" }
+    var claudeLoginTitle: String { isJapanese ? "Claude にログイン" : "Sign in to Claude" }
+    var claudeLoginDescription: String {
+        isJapanese
+            ? "この画面で Claude にログインすると、LimitBar が使用状況取得に必要なセッションを安全に保存します。"
+            : "Sign in to Claude here and LimitBar will securely save the session needed to fetch usage."
+    }
+    var claudeLoginLoading: String { isJapanese ? "Claude のログイン画面を準備しています..." : "Preparing Claude login..." }
+    var claudeLoginOpening: String { isJapanese ? "Claude のログイン画面を開いています..." : "Opening Claude login..." }
+    var claudeLoginWaiting: String { isJapanese ? "Claude へのログイン完了を待っています..." : "Waiting for Claude login..." }
+    var claudeLoginSaving: String { isJapanese ? "Claude のセッションを保存しています..." : "Saving Claude session..." }
+    var claudeLoginConnected: String { isJapanese ? "Claude セッションを接続しました。" : "Claude session connected." }
+    var claudeLoginLoadFailed: String { isJapanese ? "Claude のログイン画面を読み込めませんでした。" : "Claude login failed to load." }
     func browserLoginPrompt(_ serviceName: String) -> String {
         isJapanese
             ? "\(serviceName) のローカルログインが見つからなかったため、ブラウザを開きました。ログイン後にアプリへ戻ってもう一度接続してください。"

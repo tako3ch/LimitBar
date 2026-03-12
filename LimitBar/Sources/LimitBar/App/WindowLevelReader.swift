@@ -20,11 +20,20 @@ struct WindowLevelReader: NSViewRepresentable {
 
     private func applyLevelIfNeeded(from view: NSView) {
         guard let window = view.window else { return }
-        guard window.level != level else { return }
+        var needsUpdate = false
 
-        window.level = level
-        window.collectionBehavior.insert(.fullScreenAuxiliary)
-        window.orderFrontRegardless()
-        window.makeKeyAndOrderFront(nil)
+        if window.level != level {
+            window.level = level
+            needsUpdate = true
+        }
+
+        if !window.collectionBehavior.contains(.fullScreenAuxiliary) {
+            window.collectionBehavior.insert(.fullScreenAuxiliary)
+            needsUpdate = true
+        }
+
+        // Avoid forcing the settings window to the front on every SwiftUI update.
+        // Repeated reactivation causes AppKit layout churn and can pin a CPU core.
+        guard needsUpdate else { return }
     }
 }

@@ -48,6 +48,18 @@ struct LocalAccountSessionDetector: Sendable {
     }
 
     private func detectCodexSession() throws -> LocalAccountSession {
+        if let localSession = try? detectCodexAppSession() {
+            return localSession
+        }
+
+        if let browserSession = try? BrowserCodexSessionDetector.shared.detectSession() {
+            return browserSession
+        }
+
+        throw UsageProviderError.missingLocalSession(.codex)
+    }
+
+    private func detectCodexAppSession() throws -> LocalAccountSession {
         let authURL = FileManager.default.homeDirectoryForCurrentUser
             .appending(path: ".codex")
             .appending(path: "auth.json")
@@ -72,6 +84,14 @@ struct LocalAccountSessionDetector: Sendable {
     }
 
     private func detectClaudeSession() throws -> LocalAccountSession {
+        if let storedSession = try? ClaudeWebSessionStore.shared.loadSession()?.localSession {
+            return storedSession
+        }
+
+        if let browserSession = try? BrowserClaudeSessionDetector.shared.detectSession() {
+            return browserSession
+        }
+
         let databaseURL = FileManager.default.homeDirectoryForCurrentUser
             .appending(path: "Library")
             .appending(path: "Application Support")
@@ -192,7 +212,7 @@ struct LocalAccountSessionDetector: Sendable {
         return profile
     }
 
-    private static func chromeDate(from rawValue: Int64) -> Date? {
+    static func chromeDate(from rawValue: Int64) -> Date? {
         guard rawValue > 0 else { return nil }
         let seconds = TimeInterval(rawValue) / 1_000_000 - 11_644_473_600
         return Date(timeIntervalSince1970: seconds)
