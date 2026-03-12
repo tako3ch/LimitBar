@@ -1,9 +1,10 @@
 .DS_Store
 .build/
 .swiftpm/
-Package.resolved
 DerivedData/
+
+dist/
+*.dmg
 
 AGENTS.md
 CLAUDE.md
-/scripts
