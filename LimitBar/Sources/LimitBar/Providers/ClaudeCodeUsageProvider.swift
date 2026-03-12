@@ -17,7 +17,7 @@ struct ClaudeCodeUsageProvider: UsageProvider {
         try validateClaudeResponse(data: data, response: response)
 
         let payload = try JSONDecoder().decode(ClaudeUsagePayload.self, from: data)
-        let percent = payload.primaryWindow?.usedPercent ?? payload.secondaryWindow?.usedPercent ?? 0
+        let percent = payload.fiveHour?.utilization ?? payload.sevenDay?.utilization ?? 0
 
         return UsageSnapshot(
             service: service,
@@ -39,11 +39,11 @@ struct ClaudeCodeUsageProvider: UsageProvider {
 
     private static func details(from payload: ClaudeUsagePayload) -> String? {
         let pieces = [
-            payload.primaryWindow.map {
+            payload.fiveHour.map {
                 "resets in \(UsageSnapshot.resetDescription(after: $0.resetAfterSeconds))"
             },
-            payload.secondaryWindow.map {
-                "weekly \(Int($0.usedPercent))%"
+            payload.sevenDay.map {
+                "weekly \(Int($0.utilization))%"
             }
         ].compactMap { $0 }
 
@@ -52,21 +52,28 @@ struct ClaudeCodeUsageProvider: UsageProvider {
 }
 
 private struct ClaudeUsagePayload: Decodable {
-    let primaryWindow: ClaudeUsageWindow?
-    let secondaryWindow: ClaudeUsageWindow?
+    let fiveHour: ClaudeUsageWindow?
+    let sevenDay: ClaudeUsageWindow?
 
     enum CodingKeys: String, CodingKey {
-        case primaryWindow = "primary_window"
-        case secondaryWindow = "secondary_window"
+        case fiveHour = "five_hour"
+        case sevenDay = "seven_day"
     }
 }
 
 private struct ClaudeUsageWindow: Decodable {
-    let usedPercent: Double
-    let resetAfterSeconds: Int
+    let utilization: Double
+    let resetsAt: String
 
     enum CodingKeys: String, CodingKey {
-        case usedPercent = "used_percent"
-        case resetAfterSeconds = "reset_after_seconds"
+        case utilization
+        case resetsAt = "resets_at"
+    }
+
+    var resetAfterSeconds: Int {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: resetsAt) else { return 0 }
+        return max(0, Int(date.timeIntervalSinceNow))
     }
 }

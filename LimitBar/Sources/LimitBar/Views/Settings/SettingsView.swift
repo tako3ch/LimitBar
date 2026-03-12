@@ -126,11 +126,24 @@ struct SettingsView: View {
                     usageStore.rescheduleTimer()
                 }
 
-                Toggle(strings.notifications, isOn: Binding(
-                    get: { settings.notificationsEnabled },
-                    set: { settings.setNotificationsEnabled($0) }
-                ))
-                .disabled(!AppEnvironment.supportsUserNotifications)
+                HStack {
+                    Toggle(strings.notifications, isOn: Binding(
+                        get: { settings.notificationsEnabled },
+                        set: { settings.setNotificationsEnabled($0) }
+                    ))
+                    .disabled(!AppEnvironment.supportsUserNotifications)
+
+                    Spacer()
+
+                    Button(strings.testNotification) {
+                        usageStore.sendTestNotification()
+                    }
+                    .disabled(!settings.notificationsEnabled || !AppEnvironment.supportsUserNotifications)
+                }
+
+                Text(strings.notificationsDescription)
+                    .font(.footnote)
+                    .foregroundStyle(LimitBarTheme.muted)
 
                 if !AppEnvironment.supportsUserNotifications {
                     Text(strings.notificationsAppOnly)
@@ -336,6 +349,12 @@ struct SettingsStrings {
     var notificationThreshold: String { isJapanese ? "通知しきい値" : "Notification threshold" }
     var autoRefresh: String { isJapanese ? "自動更新の間隔" : "Auto refresh interval" }
     var notifications: String { isJapanese ? "通知を有効にする" : "Enable notifications" }
+    var testNotification: String { isJapanese ? "テスト送信" : "Send test" }
+    var notificationsDescription: String {
+        isJapanese
+            ? "使用率がしきい値を超えたとき、または使用量がリセットされたときに通知します。"
+            : "Notifies when usage exceeds the threshold or resets."
+    }
     var notificationsAppOnly: String {
         isJapanese
             ? "通知は .app として実行したときのみ利用できます。"

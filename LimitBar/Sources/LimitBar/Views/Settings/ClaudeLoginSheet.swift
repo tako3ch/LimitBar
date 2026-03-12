@@ -68,7 +68,7 @@ struct ClaudeLoginSheet: View {
         }
         .alert(strings.connectionErrorTitle, isPresented: Binding(
             get: { model.errorMessage != nil },
-            set: { if !$0 { model.errorMessage = nil } }
+            set: { if !$0 { Task { @MainActor in model.errorMessage = nil } } }
         )) {
             Button(strings.ok, role: .cancel) {}
         } message: {
@@ -159,19 +159,30 @@ private struct ClaudeLoginWebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            model.setStatusMessage(model.strings.claudeLoginOpening)
-            model.updateCurrentURL(webView.url)
+            let url = webView.url
+            Task { @MainActor in
+                model.setStatusMessage(model.strings.claudeLoginOpening)
+                model.updateCurrentURL(url)
+            }
         }
 
         func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-            model.updateCurrentURL(webView.url)
-            model.inspect(cookieStore: webView.configuration.websiteDataStore.httpCookieStore)
+            let url = webView.url
+            let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+            Task { @MainActor in
+                model.updateCurrentURL(url)
+                model.inspect(cookieStore: cookieStore)
+            }
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            model.updateCurrentURL(webView.url)
-            model.setStatusMessage(model.strings.claudeLoginWaiting)
-            model.inspect(cookieStore: webView.configuration.websiteDataStore.httpCookieStore)
+            let url = webView.url
+            let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+            Task { @MainActor in
+                model.updateCurrentURL(url)
+                model.setStatusMessage(model.strings.claudeLoginWaiting)
+                model.inspect(cookieStore: cookieStore)
+            }
         }
 
         func webView(
@@ -179,8 +190,11 @@ private struct ClaudeLoginWebView: NSViewRepresentable {
             didFail navigation: WKNavigation!,
             withError error: Error
         ) {
-            model.errorMessage = error.localizedDescription
-            model.setStatusMessage(model.strings.claudeLoginLoadFailed)
+            let message = error.localizedDescription
+            Task { @MainActor in
+                model.errorMessage = message
+                model.setStatusMessage(model.strings.claudeLoginLoadFailed)
+            }
         }
 
         func webView(
@@ -188,13 +202,20 @@ private struct ClaudeLoginWebView: NSViewRepresentable {
             didFailProvisionalNavigation navigation: WKNavigation!,
             withError error: Error
         ) {
-            model.errorMessage = error.localizedDescription
-            model.setStatusMessage(model.strings.claudeLoginLoadFailed)
+            let message = error.localizedDescription
+            Task { @MainActor in
+                model.errorMessage = message
+                model.setStatusMessage(model.strings.claudeLoginLoadFailed)
+            }
         }
 
         func webView(_ webView: WKWebView, didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
-            model.updateCurrentURL(webView.url)
-            model.inspect(cookieStore: webView.configuration.websiteDataStore.httpCookieStore)
+            let url = webView.url
+            let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+            Task { @MainActor in
+                model.updateCurrentURL(url)
+                model.inspect(cookieStore: cookieStore)
+            }
         }
     }
 }

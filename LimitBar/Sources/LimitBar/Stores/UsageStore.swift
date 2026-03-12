@@ -142,6 +142,13 @@ final class UsageStore: ObservableObject {
         }
     }
 
+    func sendTestNotification() {
+        notificationManager.post(
+            title: "LimitBar テスト通知",
+            body: "通知が正常に届いています。"
+        )
+    }
+
     func seedForPreview(_ snapshots: [UsageSnapshot]) {
         self.snapshots = snapshots
     }

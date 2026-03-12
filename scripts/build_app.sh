@@ -17,7 +17,8 @@ DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist}"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
 EXECUTABLE_PATH="$BUILD_DIR/$APP_NAME"
 RESOURCE_BUNDLE_PATH="$BUILD_DIR/${APP_NAME}_${APP_NAME}.bundle"
-SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application: UMI.DESIGN LIMITED LIABILITY COMPANY (95U36FYLHZ)}"
+ENTITLEMENTS="$ROOT_DIR/LimitBar/Sources/LimitBar/Resources/LimitBar.entitlements"
 
 if [[ "$CONFIGURATION" != "release" && "$CONFIGURATION" != "debug" ]]; then
   echo "Unsupported CONFIGURATION: $CONFIGURATION" >&2
@@ -99,6 +100,10 @@ PLIST
 
 echo "==> Code signing app bundle with identity: $SIGN_IDENTITY"
 xattr -cr "$APP_DIR"
-codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_DIR"
+codesign --force --deep --options runtime \
+  --entitlements "$ENTITLEMENTS" \
+  --sign "$SIGN_IDENTITY" \
+  "$APP_DIR"
+codesign --verify --deep --strict "$APP_DIR"
 
 echo "Built app: $APP_DIR"

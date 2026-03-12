@@ -1,3 +1,5 @@
+![img](https://github.com/user-attachments/assets/f49103e8-10e4-4e22-911f-9cda8c5f16b8)
+
 # LimitBar
 
 LimitBar は、Codex と Claude Code の利用率を macOS のメニューバーとフローティングウィジェットで確認できる常駐アプリです。

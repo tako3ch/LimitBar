@@ -10,6 +10,7 @@ final class AppModel: ObservableObject {
     let historyStore: UsageHistoryStore
     let widgetController: WidgetWindowController
     @Published private(set) var menuBarTitle: String
+    @Published var menuBarEnabled: Bool
 
     private var cancellables: Set<AnyCancellable> = []
     private var hasStarted = false
@@ -31,6 +32,7 @@ final class AppModel: ObservableObject {
             snapshots: [],
             settings: settings
         )
+        self.menuBarEnabled = settings.menuBarEnabled
 
         Publishers.CombineLatest3(
             usageStore.$snapshots,
@@ -42,6 +44,7 @@ final class AppModel: ObservableObject {
             return AppModel.makeMenuBarTitle(snapshots: snapshots, settings: settings)
         }
         .removeDuplicates()
+        .receive(on: RunLoop.main)
         .sink { [weak self] title in
             self?.menuBarTitle = title
         }
@@ -55,18 +58,39 @@ final class AppModel: ObservableObject {
                     .combineLatest(settings.$widgetPosition)
                     .combineLatest(settings.$displayMode)
             )
+            .receive(on: RunLoop.main)
             .sink { [weak self] _, _ in
                 guard let self else { return }
-                DispatchQueue.main.async {
-                    self.widgetController.update(using: self.usageStore, settings: self.settings)
-                }
+                self.widgetController.update(using: self.usageStore, settings: self.settings)
             }
             .store(in: &cancellables)
 
         usageStore.$snapshots
             .filter { !$0.isEmpty }
+            .receive(on: RunLoop.main)
             .sink { [weak self] snapshots in
                 self?.historyStore.record(snapshots: snapshots)
+            }
+            .store(in: &cancellables)
+
+        // settings → model
+        settings.$menuBarEnabled
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] value in
+                guard let self, self.menuBarEnabled != value else { return }
+                self.menuBarEnabled = value
+            }
+            .store(in: &cancellables)
+
+        // model → settings（逆方向、ループ防止に removeDuplicates）
+        $menuBarEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] value in
+                guard let self, self.settings.menuBarEnabled != value else { return }
+                self.settings.menuBarEnabled = value
             }
             .store(in: &cancellables)
     }
