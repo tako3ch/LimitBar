@@ -7,7 +7,7 @@
   <meta name="description" content="Minimal macOS menu bar monitor for Codex and Claude Code usage. Always know where you stand before hitting the limit.">
   <meta property="og:title" content="LimitBar — macOS AI Usage Monitor">
   <meta property="og:description" content="Monitor Codex and Claude Code usage from your macOS menu bar.">
-  <meta property="og:image" content="https://github.com/user-attachments/assets/f49103e8-10e4-4e22-911f-9cda8c5f16b8">
+  <meta property="og:image" content="https://tako3ch.github.io/LimitBar/imgs/cover.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -179,22 +179,21 @@
     }
     .hero-img {
       position: relative;
-      width: 100%; max-width: 540px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.1);
+      width: 100%; max-width: 580px;
+      border-radius: 20px;
       box-shadow:
         0 0  0  1px rgba(255,255,255,0.04),
-        0 20px 60px rgba(0,0,0,0.55),
+        0 24px 70px rgba(0,0,0,0.6),
         0 4px  16px rgba(0,0,0,0.3);
-      transform: perspective(1200px) rotateY(-4deg) rotateX(1.5deg) translateZ(0);
+      transform: perspective(1200px) rotateY(-3deg) rotateX(1deg) translateZ(0);
       transition: transform 0.5s cubic-bezier(0.23,1,0.32,1), box-shadow 0.5s;
     }
     .hero-visual:hover .hero-img {
-      transform: perspective(1200px) rotateY(-1deg) rotateX(0.5deg) translateY(-6px) translateZ(0);
+      transform: perspective(1200px) rotateY(-1deg) rotateX(0.3deg) translateY(-6px) translateZ(0);
       box-shadow:
-        0 0  0  1px rgba(255,255,255,0.06),
-        0 28px 70px rgba(0,0,0,0.6),
-        0 0   30px rgba(110,158,138,0.08);
+        0 0  0  1px rgba(255,255,255,0.05),
+        0 32px 80px rgba(0,0,0,0.65),
+        0 0   40px rgba(110,158,138,0.1);
     }
 
     /* ── Section base ────────────────────────────── */
@@ -386,7 +385,7 @@
     <div class="hero-visual">
       <div class="hero-glow"></div>
       <img
-        src="https://github.com/user-attachments/assets/f49103e8-10e4-4e22-911f-9cda8c5f16b8"
+        src="imgs/cover.png"
         alt="LimitBar screenshot"
         class="hero-img"
         loading="lazy"

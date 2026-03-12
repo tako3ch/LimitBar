@@ -98,6 +98,8 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
   <string>https://tako3ch.github.io/LimitBar/appcast.xml</string>
   <key>SUEnableAutomaticChecks</key>
   <true/>
+  <key>SUPublicEDKey</key>
+  <string>rxYJG4tCCTjsro95/zsWsoMoxL39+TVGaSJmuj7JdEU=</string>
 </dict>
 </plist>
 PLIST
