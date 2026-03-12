@@ -16,7 +16,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist}"
-TARGET="${TARGET:-$DIST_DIR/LimitBar.app}"
+TARGET="${TARGET:-$DIST_DIR/LimitBar.dmg}"
 KEYCHAIN_PROFILE="${KEYCHAIN_PROFILE:-LimitBar}"
 
 if [[ ! -e "$TARGET" ]]; then

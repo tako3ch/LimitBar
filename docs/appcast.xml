@@ -9,7 +9,7 @@
             <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/tako3ch/LimitBar/releases/download/v1.0.0/LimitBar.dmg" length="3664620" type="application/octet-stream" sparkle:edSignature="edVAOIboWYPsqH3wg6Xm+qyyS4WJiZf8Zvfyo8yTaythi201eKbp7q8wntRXJ3VYeJXluqR7CqoNbV01Di6lDg=="/>
+            <enclosure url="https://tako3ch.github.io/LimitBar/LimitBar.dmg" length="3706572" type="application/octet-stream" sparkle:edSignature="uLeEzoHRwrLAsWYxi8whpJ3TkK6m8gyzGrJ3qq4tH3nOKqV48sTkJP2K49KmfMzdjZtjTcEo9zaG+mZADmfzAg=="/>
         </item>
     </channel>
 </rss>

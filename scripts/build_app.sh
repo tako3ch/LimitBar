@@ -127,18 +127,40 @@ fi
 echo "==> Code signing app bundle with identity: $SIGN_IDENTITY"
 xattr -cr "$APP_DIR"
 
-# Sparkle の XPC サービスと framework を先に署名
-if [[ -d "$APP_DIR/Contents/XPCServices" ]]; then
-  for xpc in "$APP_DIR/Contents/XPCServices/"*.xpc; do
-    codesign --force --options runtime --sign "$SIGN_IDENTITY" "$xpc"
+# Sparkle.framework の内部コンポーネントを内側から順番に署名
+SPARKLE_EMBED="$APP_DIR/Contents/Frameworks/Sparkle.framework"
+if [[ -d "$SPARKLE_EMBED" ]]; then
+  # 1. Autoupdate バイナリ
+  [[ -f "$SPARKLE_EMBED/Versions/B/Autoupdate" ]] && \
+    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
+      "$SPARKLE_EMBED/Versions/B/Autoupdate"
+
+  # 2. Updater.app
+  [[ -d "$SPARKLE_EMBED/Versions/B/Updater.app" ]] && \
+    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
+      "$SPARKLE_EMBED/Versions/B/Updater.app"
+
+  # 3. Framework 内の XPCServices
+  for xpc in "$SPARKLE_EMBED/Versions/B/XPCServices/"*.xpc; do
+    [[ -d "$xpc" ]] && \
+      codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$xpc"
   done
-fi
-if [[ -d "$APP_DIR/Contents/Frameworks/Sparkle.framework" ]]; then
-  codesign --force --options runtime --sign "$SIGN_IDENTITY" \
-    "$APP_DIR/Contents/Frameworks/Sparkle.framework"
+
+  # 4. Sparkle.framework 本体
+  codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
+    "$SPARKLE_EMBED"
 fi
 
-codesign --force --options runtime \
+# 5. Contents/XPCServices/ にコピーした XPC サービスを署名
+if [[ -d "$APP_DIR/Contents/XPCServices" ]]; then
+  for xpc in "$APP_DIR/Contents/XPCServices/"*.xpc; do
+    [[ -d "$xpc" ]] && \
+      codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$xpc"
+  done
+fi
+
+# 6. アプリ本体を署名
+codesign --force --options runtime --timestamp \
   --entitlements "$ENTITLEMENTS" \
   --sign "$SIGN_IDENTITY" \
   "$APP_DIR"
