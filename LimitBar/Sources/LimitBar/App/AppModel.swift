@@ -24,7 +24,7 @@ final class AppModel: ObservableObject {
         self.historyStore = UsageHistoryStore()
         self.widgetController = WidgetWindowController()
         self.updaterController = AppEnvironment.supportsUpdates
-            ? SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+            ? SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
             : nil
         self.usageStore = UsageStore(
             settings: settings,
@@ -105,6 +105,8 @@ final class AppModel: ObservableObject {
         hasStarted = true
         usageStore.start()
         widgetController.update(using: usageStore, settings: settings)
+        // アプリ起動完了後に Sparkle を開始
+        try? updaterController?.updater.start()
     }
 
     func checkForUpdates() {
