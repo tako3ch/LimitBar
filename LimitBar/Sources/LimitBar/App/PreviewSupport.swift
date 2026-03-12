@@ -1,0 +1,25 @@
+import SwiftUI
+
+@MainActor
+enum PreviewSupport {
+    static let settings: SettingsStore = {
+        let defaults = UserDefaults(suiteName: "PreviewDefaults")!
+        defaults.removePersistentDomain(forName: "PreviewDefaults")
+        return SettingsStore(defaults: defaults)
+    }()
+
+    static let usageStore: UsageStore = {
+        let store = UsageStore(
+            settings: settings,
+            providers: [
+                AnyUsageProvider(MockUsageProvider(service: .codex, values: [72])),
+                AnyUsageProvider(MockUsageProvider(service: .claudeCode, values: [41]))
+            ]
+        )
+        store.seedForPreview([
+            UsageSnapshot(service: .codex, usedPercent: 72, status: .warning, lastUpdated: .now, details: "Mock"),
+            UsageSnapshot(service: .claudeCode, usedPercent: 41, status: .normal, lastUpdated: .now, details: "Mock")
+        ])
+        return store
+    }()
+}
