@@ -28,7 +28,7 @@ struct CodexUsageProvider: UsageProvider {
             url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!,
             userAgent: Self.browserUserAgent
         )
-        let (responseData, response) = try await URLSession.shared.data(for: request)
+        let (responseData, response) = try await URLSession.limitBar.data(for: request)
         try UsageProviderError.validate(response: response, service: service)
         return responseData
     }

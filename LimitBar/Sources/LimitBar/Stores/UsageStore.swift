@@ -55,11 +55,22 @@ final class UsageStore: ObservableObject {
         let results = await withTaskGroup(of: Result<UsageSnapshot, Error>.self) { group in
             for provider in activeProviders {
                 group.addTask {
-                    do {
-                        return .success(try await provider.fetchUsage())
-                    } catch {
-                        return .failure(error)
+                    // UsageProviderError（認証エラー等）はリトライしない
+                    // ネットワークエラーのみ最大2回リトライ（1秒、2秒のインターバル）
+                    var lastError: Error?
+                    for attempt in 0..<3 {
+                        do {
+                            return .success(try await provider.fetchUsage())
+                        } catch let error as UsageProviderError {
+                            return .failure(error)
+                        } catch {
+                            lastError = error
+                            if attempt < 2 {
+                                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000 * (attempt + 1)))
+                            }
+                        }
                     }
+                    return .failure(lastError!)
                 }
             }
 

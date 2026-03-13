@@ -15,7 +15,7 @@ struct LimitBarApp: App {
     var body: some Scene {
         MenuBarExtra(model.menuBarTitle, systemImage: "gauge.with.needle.fill", isInserted: Binding(
             get: { model.menuBarEnabled },
-            set: { value in Task { @MainActor in model.menuBarEnabled = value } }
+            set: { value in model.setMenuBarEnabledFromUI(value) }
         )) {
             MenuBarDashboardView(settings: model.settings, usageStore: model.usageStore, showReport: { model.showReportWindow() })
         }

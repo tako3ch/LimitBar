@@ -19,6 +19,17 @@ final class AppModel: ObservableObject {
     private var hasShownSafariAccessPrompt = false
     private var reportWindow: NSWindow?
 
+    private struct WidgetUpdateState: Equatable {
+        let isEnabled: Bool
+        let alwaysOnTop: Bool
+        let widgetSize: WidgetSize
+        let widgetPosition: WidgetPosition
+        let displayMode: DisplayMode
+        let showClaudeWeeklyLimit: Bool
+        let showCodexWeeklyLimit: Bool
+        let rowCount: Int
+    }
+
     init() {
         let settings = SettingsStore()
         self.settings = settings
@@ -58,25 +69,65 @@ final class AppModel: ObservableObject {
         .removeDuplicates()
         .receive(on: RunLoop.main)
         .sink { [weak self] title in
-            self?.menuBarTitle = title
+            Task { @MainActor [weak self] in
+                self?.menuBarTitle = title
+            }
         }
         .store(in: &cancellables)
     }
 
     private func bindWidgetUpdates() {
-        // widget関連の設定変更をまとめて監視
-        let widgetSettings = settings.$widgetEnabled
-            .combineLatest(settings.$widgetAlwaysOnTop, settings.$widgetSize)
-            .combineLatest(settings.$widgetPosition, settings.$displayMode)
-            .combineLatest(settings.$showClaudeWeeklyLimitInWidget, settings.$showCodexWeeklyLimitInWidget)
+        let widgetSettings = Publishers.CombineLatest4(
+            settings.$widgetEnabled,
+            settings.$widgetAlwaysOnTop,
+            settings.$widgetSize,
+            settings.$widgetPosition
+        )
+        .combineLatest(
+            Publishers.CombineLatest3(
+                settings.$displayMode,
+                settings.$showClaudeWeeklyLimitInWidget,
+                settings.$showCodexWeeklyLimitInWidget
+            )
+        )
 
-        usageStore.$snapshots
-            .combineLatest(widgetSettings)
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _, _ in
-                guard let self else { return }
-                self.widgetController.update(using: self.usageStore, settings: self.settings)
+        let widgetStatePublisher = Publishers.CombineLatest(
+            usageStore.$snapshots,
+            widgetSettings
+        )
+            .map { [weak settings] combined -> WidgetUpdateState in
+                let (snapshots, widgetSettings) = combined
+                let ((isEnabled, alwaysOnTop, widgetSize, widgetPosition), (displayMode, showClaudeWeeklyLimit, showCodexWeeklyLimit)) = widgetSettings
+                let rowCount = snapshots.reduce(0) { count, snapshot in
+                    guard let settings else { return count + 1 }
+                    let showsWeekly = settings.showsWeeklyLimitInWidget(for: snapshot.service) && snapshot.clampedWeeklyPercent != nil
+                    return count + 1 + (showsWeekly ? 1 : 0)
+                }
+
+                return WidgetUpdateState(
+                    isEnabled: isEnabled,
+                    alwaysOnTop: alwaysOnTop,
+                    widgetSize: widgetSize,
+                    widgetPosition: widgetPosition,
+                    displayMode: displayMode,
+                    showClaudeWeeklyLimit: showClaudeWeeklyLimit,
+                    showCodexWeeklyLimit: showCodexWeeklyLimit,
+                    rowCount: rowCount
+                )
             }
+            .removeDuplicates()
+
+        widgetStatePublisher
+            .receive(on: RunLoop.main)
+            .sink(receiveValue: { [weak self] (_: WidgetUpdateState) in
+                guard let self else { return }
+                // Task でラップして現在の SwiftUI 更新サイクル完了後に実行し
+                // "Publishing changes from within view updates" 警告を回避する
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.widgetController.update(using: self.usageStore, settings: self.settings)
+                }
+            })
             .store(in: &cancellables)
     }
 
@@ -127,6 +178,11 @@ final class AppModel: ObservableObject {
         if let updater = updaterController?.updater {
             try? updater.start()
         }
+    }
+
+    func setMenuBarEnabledFromUI(_ value: Bool) {
+        guard menuBarEnabled != value else { return }
+        menuBarEnabled = value
     }
 
     private func showTranslocationAlert() {

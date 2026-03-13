@@ -4,6 +4,9 @@ import SwiftUI
 @MainActor
 final class WidgetWindowController {
     private var panel: NSPanel?
+    private var lastAppliedSize: NSSize?
+    private var lastAppliedPosition: WidgetPosition?
+    private var lastAppliedLevel: NSWindow.Level?
 
     func update(using usageStore: UsageStore, settings: SettingsStore) {
         guard settings.widgetEnabled else {
@@ -25,10 +28,36 @@ final class WidgetWindowController {
         let panel = panel!
 
         let rowCount = displayedRowCount(for: usageStore, settings: settings)
-        panel.setContentSize(NSSize(width: layout.width, height: layout.height(forRowCount: rowCount)))
-        panel.level = settings.widgetAlwaysOnTop ? .floating : .normal
-        updatePanelOrigin(for: panel, position: settings.widgetPosition)
-        panel.orderFrontRegardless()
+        let newSize = NSSize(width: layout.width, height: layout.height(forRowCount: rowCount))
+        let newLevel: NSWindow.Level = settings.widgetAlwaysOnTop ? .floating : .normal
+        let shouldApplySize = lastAppliedSize != newSize
+        let shouldApplyLevel = lastAppliedLevel != newLevel
+        let shouldApplyPosition = lastAppliedPosition != settings.widgetPosition || shouldApplySize
+        let shouldShowPanel = !panel.isVisible
+
+        guard shouldApplySize || shouldApplyLevel || shouldApplyPosition || shouldShowPanel else {
+            return
+        }
+
+        // setContentSize は AppKit の同期レイアウトを引き起こすため、
+        // SwiftUI のレンダリングパスとの競合を避けるために非同期で実行する。
+        DispatchQueue.main.async {
+            if shouldApplySize {
+                panel.setContentSize(newSize)
+                self.lastAppliedSize = newSize
+            }
+            if shouldApplyLevel {
+                panel.level = newLevel
+                self.lastAppliedLevel = newLevel
+            }
+            if shouldApplyPosition {
+                self.updatePanelOrigin(for: panel, position: settings.widgetPosition)
+                self.lastAppliedPosition = settings.widgetPosition
+            }
+            if shouldShowPanel {
+                panel.orderFrontRegardless()
+            }
+        }
     }
 
     private func makePanel(usageStore: UsageStore, settings: SettingsStore) -> NSPanel {
@@ -48,6 +77,9 @@ final class WidgetWindowController {
         panel.contentViewController = NSHostingController(
             rootView: FloatingWidgetView(usageStore: usageStore, settings: settings)
         )
+        lastAppliedSize = panel.frame.size
+        lastAppliedPosition = settings.widgetPosition
+        lastAppliedLevel = panel.level
         updatePanelOrigin(for: panel, position: settings.widgetPosition)
         return panel
     }
