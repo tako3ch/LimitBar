@@ -103,12 +103,35 @@ final class AppModel: ObservableObject {
     func start() {
         guard !hasStarted else { return }
         hasStarted = true
+
+        if AppEnvironment.isTranslocated {
+            showTranslocationAlert()
+            return
+        }
+
         usageStore.start()
         widgetController.update(using: usageStore, settings: settings)
         // アプリ起動完了後に Sparkle を開始
         if let updater = updaterController?.updater {
             try? updater.start()
         }
+    }
+
+    private func showTranslocationAlert() {
+        let alert = NSAlert()
+        alert.messageText = "LimitBar を Applications フォルダに移動してください"
+        alert.informativeText = """
+            DMG から直接起動しているため、macOS のセキュリティ機能により \
+            一時フォルダから実行されています。
+            このままでは数分後にクラッシュする可能性があります。
+
+            LimitBar.app を /Applications フォルダにコピーしてから再度起動してください。
+            """
+        alert.addButton(withTitle: "終了")
+        alert.alertStyle = .critical
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
+        NSApp.terminate(nil)
     }
 
     func checkForUpdates() {

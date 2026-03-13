@@ -12,11 +12,13 @@ DEFAULT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :MarketingVersion' "$VERSIO
 DEFAULT_BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c 'Print :BuildNumber' "$VERSION_PLIST")"
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 BUILD_NUMBER="${BUILD_NUMBER:-$DEFAULT_BUILD_NUMBER}"
-BUILD_DIR="$ROOT_DIR/.build/arm64-apple-macosx/$CONFIGURATION"
+BUILD_DIR_ARM64="$ROOT_DIR/.build/arm64-apple-macosx/$CONFIGURATION"
+BUILD_DIR_X86="$ROOT_DIR/.build/x86_64-apple-macosx/$CONFIGURATION"
 DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist}"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
-EXECUTABLE_PATH="$BUILD_DIR/$APP_NAME"
-RESOURCE_BUNDLE_PATH="$BUILD_DIR/${APP_NAME}_${APP_NAME}.bundle"
+EXECUTABLE_PATH_ARM64="$BUILD_DIR_ARM64/$APP_NAME"
+EXECUTABLE_PATH_X86="$BUILD_DIR_X86/$APP_NAME"
+RESOURCE_BUNDLE_PATH="$BUILD_DIR_ARM64/${APP_NAME}_${APP_NAME}.bundle"
 SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application: UMI.DESIGN LIMITED LIABILITY COMPANY (95U36FYLHZ)}"
 ENTITLEMENTS="$ROOT_DIR/LimitBar/Sources/LimitBar/Resources/LimitBar.entitlements"
 
@@ -25,12 +27,19 @@ if [[ "$CONFIGURATION" != "release" && "$CONFIGURATION" != "debug" ]]; then
   exit 1
 fi
 
-echo "==> Building $APP_NAME ($CONFIGURATION)"
+echo "==> Building $APP_NAME ($CONFIGURATION) — arm64"
 cd "$ROOT_DIR"
-swift build -c "$CONFIGURATION"
+swift build -c "$CONFIGURATION" --arch arm64
 
-if [[ ! -f "$EXECUTABLE_PATH" ]]; then
-  echo "Executable not found: $EXECUTABLE_PATH" >&2
+echo "==> Building $APP_NAME ($CONFIGURATION) — x86_64"
+swift build -c "$CONFIGURATION" --arch x86_64
+
+if [[ ! -f "$EXECUTABLE_PATH_ARM64" ]]; then
+  echo "Executable not found: $EXECUTABLE_PATH_ARM64" >&2
+  exit 1
+fi
+if [[ ! -f "$EXECUTABLE_PATH_X86" ]]; then
+  echo "Executable not found: $EXECUTABLE_PATH_X86" >&2
   exit 1
 fi
 
@@ -39,7 +48,9 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
 
-cp "$EXECUTABLE_PATH" "$APP_DIR/Contents/MacOS/$APP_NAME"
+echo "==> Creating universal binary (arm64 + x86_64)"
+lipo -create "$EXECUTABLE_PATH_ARM64" "$EXECUTABLE_PATH_X86" \
+  -output "$APP_DIR/Contents/MacOS/$APP_NAME"
 chmod +x "$APP_DIR/Contents/MacOS/$APP_NAME"
 
 # Sparkle.framework を検索するための rpath を追加
