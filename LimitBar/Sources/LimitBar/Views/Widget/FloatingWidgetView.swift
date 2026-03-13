@@ -26,12 +26,15 @@ struct FloatingWidgetView: View {
         AppStrings(language: settings.appLanguage)
     }
 
-    private var cardPadding: CGFloat {
-        settings.widgetSize == .small ? 14 : 18
+    private var layout: WidgetLayout {
+        WidgetLayout(
+            displayMode: settings.displayMode,
+            widgetSize: settings.widgetSize
+        )
     }
 
-    private var cornerRadius: CGFloat {
-        settings.widgetSize == .small ? 20 : 24
+    private var rowFontSize: CGFloat {
+        settings.widgetSize == .small ? 12 : 13
     }
 
     var body: some View {
@@ -39,7 +42,7 @@ struct FloatingWidgetView: View {
             if settings.displayMode == .normal {
                 HStack {
                     Text(strings.appTitle)
-                        .font(.system(size: settings.widgetSize == .small ? 12 : 13, weight: .medium))
+                        .font(.system(size: rowFontSize, weight: .medium))
                         .foregroundStyle(LimitBarTheme.muted)
                     Spacer()
                     Image(systemName: "capsule.lefthalf.filled")
@@ -63,12 +66,12 @@ struct FloatingWidgetView: View {
                 }
             }
         }
-        .padding(cardPadding)
-        .frame(width: widgetWidth)
+        .padding(layout.cardPadding)
+        .frame(width: layout.width)
         .background(
             widgetBackground
         )
-        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous))
         .onTapGesture(count: 2, perform: openSettings)
     }
 
@@ -91,7 +94,7 @@ struct FloatingWidgetView: View {
                     WidgetUsageRow(
                         id: "\(snapshot.service.rawValue)-weekly",
                         service: snapshot.service,
-                        title: weeklyTitle(),
+                        title: strings.weeklyLabel,
                         percent: weeklyPercent,
                         status: UsageSnapshot.status(for: weeklyPercent),
                         isWeekly: true
@@ -111,20 +114,13 @@ struct FloatingWidgetView: View {
         }
     }
 
-    private var widgetWidth: CGFloat {
-        if settings.displayMode == .minimal {
-            return settings.widgetSize == .small ? 152 : 176
-        }
-        return settings.widgetSize == .small ? 240 : 290
-    }
-
     @ViewBuilder
     private func normalRow(for snapshot: WidgetUsageRow) -> some View {
         HStack(spacing: 10) {
             ServiceLogoMark(service: snapshot.service, size: settings.widgetSize == .small ? 18 : 20)
 
             Text(snapshot.title)
-                .font(.system(size: settings.widgetSize == .small ? 12 : 13, weight: .semibold))
+                .font(.system(size: rowFontSize, weight: .semibold))
                 .foregroundStyle(LimitBarTheme.strongText)
                 .frame(width: 84, alignment: .leading)
 
@@ -162,12 +158,8 @@ struct FloatingWidgetView: View {
         .frame(height: settings.widgetSize == .small ? 22 : 26)
     }
 
-    private func weeklyTitle() -> String {
-        strings.weeklyLabel
-    }
-
     private var widgetBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous)
 
         return ZStack {
             shape

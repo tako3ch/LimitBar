@@ -79,9 +79,7 @@ final class UsageStore: ObservableObject {
             return (snapshots, errors)
         }
 
-        let orderedSnapshots = results.0.sorted {
-            (ServiceKind.allCases.firstIndex(of: $0.service) ?? 0) < (ServiceKind.allCases.firstIndex(of: $1.service) ?? 0)
-        }
+        let orderedSnapshots = results.0.sorted { $0.service.displayOrder < $1.service.displayOrder }
 
         snapshots = orderedSnapshots
         handleNotifications(for: orderedSnapshots)
@@ -117,12 +115,14 @@ final class UsageStore: ObservableObject {
 
     private func scheduleTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: settings.refreshInterval, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: settings.refreshInterval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 await self?.refresh()
             }
         }
-        timer?.tolerance = min(max(settings.refreshInterval * 0.2, 5), 60)
+        timer.tolerance = min(max(settings.refreshInterval * 0.2, 5), 60)
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     private func handleNotifications(for snapshots: [UsageSnapshot]) {

@@ -13,6 +13,13 @@ enum ServiceKind: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    var displayOrder: Int {
+        switch self {
+        case .codex: 0
+        case .claudeCode: 1
+        }
+    }
+
     var displayName: String {
         switch self {
         case .codex: "Codex"
