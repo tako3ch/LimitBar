@@ -13,7 +13,7 @@ struct ClaudeCodeUsageProvider: UsageProvider {
             url: URL(string: "https://claude.ai/api/organizations/\(organizationID)/usage")!,
             userAgent: ClaudeWebLoginService.userAgent
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.limitBar.data(for: request)
         try validateClaudeResponse(data: data, response: response)
 
         let payload = try JSONDecoder().decode(ClaudeUsagePayload.self, from: data)
