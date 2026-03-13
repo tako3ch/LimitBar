@@ -15,7 +15,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist}"
+VERSION_PLIST="$ROOT_DIR/LimitBar/Sources/LimitBar/Resources/AppVersion.plist"
+VERSION="${VERSION:-$(/usr/libexec/PlistBuddy -c 'Print :MarketingVersion' "$VERSION_PLIST")}"
+DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist/v$VERSION}"
 TARGET="${TARGET:-$DIST_DIR/LimitBar.dmg}"
 KEYCHAIN_PROFILE="${KEYCHAIN_PROFILE:-LimitBar}"
 

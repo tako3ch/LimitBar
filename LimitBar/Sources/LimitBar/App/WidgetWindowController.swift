@@ -11,6 +11,11 @@ final class WidgetWindowController {
             return
         }
 
+        let layout = WidgetLayout(
+            displayMode: settings.displayMode,
+            widgetSize: settings.widgetSize
+        )
+
         // パネルが未生成の場合のみ NSHostingController を作成する。
         // FloatingWidgetView は @ObservedObject で usageStore / settings を監視するため、
         // 同一インスタンスを渡し続ければ一度の生成で自動更新される。
@@ -19,20 +24,8 @@ final class WidgetWindowController {
         }
         let panel = panel!
 
-        let width: CGFloat
-        if settings.displayMode == .minimal {
-            width = settings.widgetSize == .small ? 152 : 176
-        } else {
-            width = settings.widgetSize == .small ? 240 : 290
-        }
-        let rowCount = max(usageStore.snapshots.count, 1)
-        let rowHeight = settings.displayMode == .minimal
-            ? (settings.widgetSize == .small ? 22.0 : 26.0)
-            : (settings.widgetSize == .small ? 18.0 : 22.0)
-        let topArea = settings.displayMode == .minimal ? 0.0 : 34.0
-        let verticalPadding = settings.widgetSize == .small ? 28.0 : 36.0
-        let height = topArea + (Double(rowCount) * rowHeight) + verticalPadding
-        panel.setContentSize(NSSize(width: width, height: height))
+        let rowCount = displayedRowCount(for: usageStore, settings: settings)
+        panel.setContentSize(NSSize(width: layout.width, height: layout.height(forRowCount: rowCount)))
         panel.level = settings.widgetAlwaysOnTop ? .floating : .normal
         updatePanelOrigin(for: panel, position: settings.widgetPosition)
         panel.orderFrontRegardless()
@@ -57,6 +50,13 @@ final class WidgetWindowController {
         )
         updatePanelOrigin(for: panel, position: settings.widgetPosition)
         return panel
+    }
+
+    private func displayedRowCount(for usageStore: UsageStore, settings: SettingsStore) -> Int {
+        usageStore.snapshots.reduce(0) { count, snapshot in
+            let showsWeekly = settings.showsWeeklyLimitInWidget(for: snapshot.service) && snapshot.clampedWeeklyPercent != nil
+            return count + 1 + (showsWeekly ? 1 : 0)
+        }
     }
 
     private func updatePanelOrigin(for panel: NSPanel, position: WidgetPosition) {

@@ -39,7 +39,13 @@ final class AppModel: ObservableObject {
             settings: settings
         )
         self.menuBarEnabled = settings.menuBarEnabled
+        bindMenuBarTitle()
+        bindWidgetUpdates()
+        bindHistoryRecording()
+        bindMenuBarEnabled()
+    }
 
+    private func bindMenuBarTitle() {
         Publishers.CombineLatest3(
             usageStore.$snapshots,
             settings.$codexConnected,
@@ -55,22 +61,26 @@ final class AppModel: ObservableObject {
             self?.menuBarTitle = title
         }
         .store(in: &cancellables)
+    }
+
+    private func bindWidgetUpdates() {
+        // widget関連の設定変更をまとめて監視
+        let widgetSettings = settings.$widgetEnabled
+            .combineLatest(settings.$widgetAlwaysOnTop, settings.$widgetSize)
+            .combineLatest(settings.$widgetPosition, settings.$displayMode)
+            .combineLatest(settings.$showClaudeWeeklyLimitInWidget, settings.$showCodexWeeklyLimitInWidget)
 
         usageStore.$snapshots
-            .combineLatest(
-                settings.$widgetEnabled
-                    .combineLatest(settings.$widgetAlwaysOnTop)
-                    .combineLatest(settings.$widgetSize)
-                    .combineLatest(settings.$widgetPosition)
-                    .combineLatest(settings.$displayMode)
-            )
+            .combineLatest(widgetSettings)
             .receive(on: RunLoop.main)
             .sink { [weak self] _, _ in
                 guard let self else { return }
                 self.widgetController.update(using: self.usageStore, settings: self.settings)
             }
             .store(in: &cancellables)
+    }
 
+    private func bindHistoryRecording() {
         usageStore.$snapshots
             .filter { !$0.isEmpty }
             .receive(on: RunLoop.main)
@@ -78,8 +88,9 @@ final class AppModel: ObservableObject {
                 self?.historyStore.record(snapshots: snapshots)
             }
             .store(in: &cancellables)
+    }
 
-        // settings → model
+    private func bindMenuBarEnabled() {
         settings.$menuBarEnabled
             .removeDuplicates()
             .receive(on: RunLoop.main)
@@ -89,7 +100,6 @@ final class AppModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // model → settings（逆方向、ループ防止に removeDuplicates）
         $menuBarEnabled
             .dropFirst()
             .removeDuplicates()
@@ -99,7 +109,6 @@ final class AppModel: ObservableObject {
                 self.settings.menuBarEnabled = value
             }
             .store(in: &cancellables)
-
     }
 
     func start() {
@@ -175,16 +184,21 @@ final class AppModel: ObservableObject {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let view = UsageReportView(historyStore: historyStore, settings: settings)
-        let hosting = NSHostingController(rootView: view)
-        let window = NSWindow(contentViewController: hosting)
-        window.title = settings.appLanguage.isJapanese ? "使用量レポート" : "Usage Report"
-        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
-        window.setContentSize(NSSize(width: 600, height: 500))
-        window.center()
+        let window = makeReportWindow()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         reportWindow = window
+    }
+
+    private func makeReportWindow() -> NSWindow {
+        let view = UsageReportView(historyStore: historyStore, settings: settings)
+        let hosting = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: hosting)
+        window.title = AppStrings(language: settings.appLanguage).openReport
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        window.setContentSize(NSSize(width: 600, height: 500))
+        window.center()
+        return window
     }
 
     private static func makeMenuBarTitle(snapshots: [UsageSnapshot], settings: SettingsStore) -> String {

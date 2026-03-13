@@ -33,11 +33,14 @@ struct ServiceUsageCard: View {
 
                     Text("\(Int(snapshot.clampedPercent))%")
                         .font(.system(size: displayMode == .minimal ? 24 : 28, weight: .thin, design: .rounded))
-                        .foregroundStyle(LimitBarTheme.strongText)
+                        .foregroundStyle(LimitBarTheme.severityColor(for: snapshot.clampedPercent))
                         .contentTransition(.numericText())
                 }
 
-                ProgressPill(percent: snapshot.clampedPercent, tint: snapshot.tint)
+                ProgressPill(
+                    percent: snapshot.clampedPercent,
+                    tint: LimitBarTheme.progressColor(for: snapshot.clampedPercent, service: snapshot.service)
+                )
 
                 if displayMode == .normal {
                     HStack {

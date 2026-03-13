@@ -47,6 +47,8 @@ struct AppStrings {
             ? "設定で Codex または Claude Code を接続"
             : "Connect Codex or Claude Code in Settings"
     }
+    var weeklyLabel: String { isJapanese ? "Weekly" : "Weekly" }
+    var weeklyShortLabel: String { isJapanese ? "週" : "W" }
     var quitApp: String { isJapanese ? "アプリを終了する" : "Quit App" }
     var updatedPrefix: String { isJapanese ? "更新" : "Updated" }
     var openReport: String { isJapanese ? "使用量レポート" : "Usage Report" }

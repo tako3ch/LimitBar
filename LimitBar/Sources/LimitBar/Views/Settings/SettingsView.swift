@@ -8,6 +8,42 @@ struct SettingsView: View {
     @State private var disconnectConfirmationService: ServiceKind?
     @State private var connectionErrorMessage: String?
 
+    private var strings: SettingsStrings {
+        SettingsStrings(appLanguage: settings.appLanguage)
+    }
+
+    private var widgetOrderBinding: Binding<Bool> {
+        Binding(
+            get: { settings.widgetServiceOrder.first == ServiceKind.codex.rawValue },
+            set: { codexFirst in
+                settings.widgetServiceOrder = codexFirst
+                    ? [ServiceKind.codex.rawValue, ServiceKind.claudeCode.rawValue]
+                    : [ServiceKind.claudeCode.rawValue, ServiceKind.codex.rawValue]
+            }
+        )
+    }
+
+    private var notificationsBinding: Binding<Bool> {
+        Binding(
+            get: { settings.notificationsEnabled },
+            set: { settings.setNotificationsEnabled($0) }
+        )
+    }
+
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { settings.launchAtLogin },
+            set: { settings.setLaunchAtLogin($0) }
+        )
+    }
+
+    private var connectionErrorBinding: Binding<Bool> {
+        Binding(
+            get: { connectionErrorMessage != nil },
+            set: { if !$0 { connectionErrorMessage = nil } }
+        )
+    }
+
     var body: some View {
         Form {
 
@@ -80,19 +116,18 @@ struct SettingsView: View {
                 }
                 .disabled(!settings.widgetEnabled)
 
-                Picker(strings.widgetOrder, selection: Binding(
-                    get: { settings.widgetServiceOrder.first == "codex" },
-                    set: { codexFirst in
-                        settings.widgetServiceOrder = codexFirst
-                            ? ["codex", "claudeCode"]
-                            : ["claudeCode", "codex"]
-                    }
-                )) {
+                Picker(strings.widgetOrder, selection: widgetOrderBinding) {
                     Text(strings.widgetOrderCodexFirst).tag(true)
                     Text(strings.widgetOrderClaudeFirst).tag(false)
                 }
                 .pickerStyle(.segmented)
                 .disabled(!settings.widgetEnabled)
+
+                Toggle(strings.showClaudeWeeklyLimitInWidget, isOn: $settings.showClaudeWeeklyLimitInWidget)
+                    .disabled(!settings.widgetEnabled)
+
+                Toggle(strings.showCodexWeeklyLimitInWidget, isOn: $settings.showCodexWeeklyLimitInWidget)
+                    .disabled(!settings.widgetEnabled)
             } header: {
                 Label(strings.widgetSection, systemImage: "macwindow.on.rectangle")
             } footer: {
@@ -127,10 +162,7 @@ struct SettingsView: View {
                 }
 
                 HStack {
-                    Toggle(strings.notifications, isOn: Binding(
-                        get: { settings.notificationsEnabled },
-                        set: { settings.setNotificationsEnabled($0) }
-                    ))
+                    Toggle(strings.notifications, isOn: notificationsBinding)
                     .disabled(!AppEnvironment.supportsUserNotifications)
 
                     Spacer()
@@ -158,10 +190,7 @@ struct SettingsView: View {
             Section {
                 Toggle(strings.menuBarItem, isOn: $settings.menuBarEnabled)
 
-                Toggle(strings.launchAtLogin, isOn: Binding(
-                    get: { settings.launchAtLogin },
-                    set: { settings.setLaunchAtLogin($0) }
-                ))
+                Toggle(strings.launchAtLogin, isOn: launchAtLoginBinding)
                 .disabled(!AppEnvironment.supportsLaunchAtLogin)
 
                 if !AppEnvironment.supportsLaunchAtLogin {
@@ -195,10 +224,7 @@ struct SettingsView: View {
         .padding(20)
         .frame(width: 540)
         .background(WindowLevelReader(level: .floating))
-        .alert(strings.connectionErrorTitle, isPresented: Binding(
-            get: { connectionErrorMessage != nil },
-            set: { if !$0 { connectionErrorMessage = nil } }
-        )) {
+        .alert(strings.connectionErrorTitle, isPresented: connectionErrorBinding) {
             Button(strings.ok, role: .cancel) {}
         } message: {
             Text(connectionErrorMessage ?? "")
@@ -216,10 +242,6 @@ struct SettingsView: View {
         }
     }
 
-    private var strings: SettingsStrings {
-        SettingsStrings(appLanguage: settings.appLanguage)
-    }
-
     private func toggleConnection(for service: ServiceKind) {
         if settings.isConnected(service) {
             disconnectConfirmationService = service
@@ -227,24 +249,36 @@ struct SettingsView: View {
             do {
                 try settings.connect(service)
                 connectionErrorMessage = nil
-                Task { await usageStore.refresh() }
-            } catch UsageProviderError.localClientNotInstalled(.codex, _) {
-                connectionErrorMessage = strings.codexInstallPrompt
-            } catch UsageProviderError.missingLocalSession(.codex) {
-                connectionErrorMessage = strings.codexLoginPrompt
-            } catch UsageProviderError.missingLocalSession(.claudeCode) {
-                let launchedBrowser = openClaudeLoginPage()
-                connectionErrorMessage = browserPrompt(for: launchedBrowser, service: .claudeCode)
+                refreshUsage()
             } catch UsageProviderError.browserDataAccessDenied(let deniedService, let browserName) {
                 connectionErrorMessage = strings.browserAccessDenied(serviceName: deniedService.displayName, browserName: browserName)
+            } catch let providerError as UsageProviderError {
+                connectionErrorMessage = connectionMessage(for: providerError)
             } catch {
                 connectionErrorMessage = error.localizedDescription
             }
         }
     }
 
+    private func refreshUsage() {
+        Task { await usageStore.refresh() }
+    }
+
     private func openClaudeLoginPage() -> BrowserLaunchTarget {
         BrowserLaunchService.shared.openDefaultBrowser(for: ServiceKind.claudeCode.loginURL)
+    }
+
+    private func connectionMessage(for error: UsageProviderError) -> String {
+        switch error {
+        case .localClientNotInstalled(.codex, _):
+            strings.codexInstallPrompt
+        case .missingLocalSession(.codex):
+            strings.codexLoginPrompt
+        case .missingLocalSession(.claudeCode):
+            browserPrompt(for: openClaudeLoginPage(), service: .claudeCode)
+        default:
+            error.localizedDescription
+        }
     }
 
     private func browserPrompt(for browser: BrowserLaunchTarget, service: ServiceKind) -> String {
@@ -255,9 +289,7 @@ struct SettingsView: View {
             } else {
                 strings.browserLoginPrompt(service.displayName, browserName: browser.displayName)
             }
-        case .chromium:
-            strings.browserLoginPrompt(service.displayName, browserName: browser.displayName)
-        case .other:
+        case .chromium, .other:
             strings.browserLoginPrompt(service.displayName, browserName: browser.displayName)
         }
     }
@@ -353,6 +385,8 @@ struct SettingsStrings {
     var widgetOrder: String { isJapanese ? "表示順" : "Display order" }
     var widgetOrderCodexFirst: String { isJapanese ? "Codex を先に表示" : "Codex first" }
     var widgetOrderClaudeFirst: String { isJapanese ? "Claude Code を先に表示" : "Claude Code first" }
+    var showClaudeWeeklyLimitInWidget: String { isJapanese ? "Weekly Limits 表示(Claude Code)" : "Show Weekly Limits (Claude Code)" }
+    var showCodexWeeklyLimitInWidget: String { isJapanese ? "Weekly Limits 表示(Codex)" : "Show Weekly Limits (Codex)" }
 
     // 通知・更新
     var notificationThreshold: String { isJapanese ? "通知しきい値" : "Notification threshold" }

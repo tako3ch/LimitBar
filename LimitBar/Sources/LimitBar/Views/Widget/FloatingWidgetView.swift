@@ -5,16 +5,36 @@ struct FloatingWidgetView: View {
     @ObservedObject var usageStore: UsageStore
     @ObservedObject var settings: SettingsStore
 
+    private struct WidgetUsageRow: Identifiable {
+        let id: String
+        let service: ServiceKind
+        let title: String
+        let percent: Double
+        let status: UsageStatus
+        let isWeekly: Bool
+
+        var barTint: Color {
+            isWeekly ? service.weeklyColor : LimitBarTheme.progressColor(for: percent, service: service)
+        }
+
+        var percentageTint: Color {
+            isWeekly ? LimitBarTheme.weeklyText : LimitBarTheme.severityColor(for: percent)
+        }
+    }
+
     private var strings: AppStrings {
         AppStrings(language: settings.appLanguage)
     }
 
-    private var cardPadding: CGFloat {
-        settings.widgetSize == .small ? 14 : 18
+    private var layout: WidgetLayout {
+        WidgetLayout(
+            displayMode: settings.displayMode,
+            widgetSize: settings.widgetSize
+        )
     }
 
-    private var cornerRadius: CGFloat {
-        settings.widgetSize == .small ? 20 : 24
+    private var rowFontSize: CGFloat {
+        settings.widgetSize == .small ? 12 : 13
     }
 
     var body: some View {
@@ -22,7 +42,7 @@ struct FloatingWidgetView: View {
             if settings.displayMode == .normal {
                 HStack {
                     Text(strings.appTitle)
-                        .font(.system(size: settings.widgetSize == .small ? 12 : 13, weight: .medium))
+                        .font(.system(size: rowFontSize, weight: .medium))
                         .foregroundStyle(LimitBarTheme.muted)
                     Spacer()
                     Image(systemName: "capsule.lefthalf.filled")
@@ -37,7 +57,7 @@ struct FloatingWidgetView: View {
                     .foregroundStyle(LimitBarTheme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ForEach(orderedSnapshots) { snapshot in
+                ForEach(widgetRows) { snapshot in
                     if settings.displayMode == .minimal {
                         minimalRow(for: snapshot)
                     } else {
@@ -46,13 +66,44 @@ struct FloatingWidgetView: View {
                 }
             }
         }
-        .padding(cardPadding)
-        .frame(width: widgetWidth)
+        .padding(layout.cardPadding)
+        .frame(width: layout.width)
         .background(
             widgetBackground
         )
-        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous))
         .onTapGesture(count: 2, perform: openSettings)
+    }
+
+    private var widgetRows: [WidgetUsageRow] {
+        orderedSnapshots.flatMap { snapshot in
+            var rows = [
+                WidgetUsageRow(
+                    id: "\(snapshot.service.rawValue)-primary",
+                    service: snapshot.service,
+                    title: snapshot.service.displayName,
+                    percent: snapshot.clampedPercent,
+                    status: snapshot.status,
+                    isWeekly: false
+                )
+            ]
+
+            if settings.showsWeeklyLimitInWidget(for: snapshot.service),
+               let weeklyPercent = snapshot.clampedWeeklyPercent {
+                rows.append(
+                    WidgetUsageRow(
+                        id: "\(snapshot.service.rawValue)-weekly",
+                        service: snapshot.service,
+                        title: strings.weeklyLabel,
+                        percent: weeklyPercent,
+                        status: UsageSnapshot.status(for: weeklyPercent),
+                        isWeekly: true
+                    )
+                )
+            }
+
+            return rows
+        }
     }
 
     private var orderedSnapshots: [UsageSnapshot] {
@@ -63,53 +114,52 @@ struct FloatingWidgetView: View {
         }
     }
 
-    private var widgetWidth: CGFloat {
-        if settings.displayMode == .minimal {
-            return settings.widgetSize == .small ? 152 : 176
-        }
-        return settings.widgetSize == .small ? 240 : 290
-    }
-
     @ViewBuilder
-    private func normalRow(for snapshot: UsageSnapshot) -> some View {
+    private func normalRow(for snapshot: WidgetUsageRow) -> some View {
         HStack(spacing: 10) {
             ServiceLogoMark(service: snapshot.service, size: settings.widgetSize == .small ? 18 : 20)
 
-            Text(snapshot.service.displayName)
-                .font(.system(size: settings.widgetSize == .small ? 12 : 13, weight: .semibold))
+            Text(snapshot.title)
+                .font(.system(size: rowFontSize, weight: .semibold))
                 .foregroundStyle(LimitBarTheme.strongText)
                 .frame(width: 84, alignment: .leading)
 
-            ProgressPill(percent: snapshot.clampedPercent, tint: snapshot.tint)
+            ProgressPill(percent: snapshot.percent, tint: snapshot.barTint)
                 .frame(height: 6)
 
-            Text("\(Int(snapshot.clampedPercent))%")
+            Text("\(Int(snapshot.percent))%")
                 .font(.system(size: settings.widgetSize == .small ? 14 : 16, weight: .thin, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(LimitBarTheme.strongText)
+                .foregroundStyle(snapshot.percentageTint)
                 .frame(width: 42, alignment: .trailing)
         }
         .frame(height: settings.widgetSize == .small ? 18 : 22)
     }
 
     @ViewBuilder
-    private func minimalRow(for snapshot: UsageSnapshot) -> some View {
+    private func minimalRow(for snapshot: WidgetUsageRow) -> some View {
         HStack(spacing: 10) {
             ServiceLogoMark(service: snapshot.service, size: settings.widgetSize == .small ? 18 : 20)
 
             Spacer(minLength: 0)
 
-            Text("\(Int(snapshot.clampedPercent))%")
+            if snapshot.isWeekly {
+                Text(strings.weeklyShortLabel)
+                    .font(.system(size: settings.widgetSize == .small ? 10 : 11, weight: .semibold))
+                    .foregroundStyle(LimitBarTheme.muted)
+            }
+
+            Text("\(Int(snapshot.percent))%")
                 .font(.system(size: settings.widgetSize == .small ? 20 : 24, weight: .light, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(LimitBarTheme.strongText)
+                .foregroundStyle(snapshot.percentageTint)
                 .frame(width: settings.widgetSize == .small ? 58 : 70, alignment: .trailing)
         }
         .frame(height: settings.widgetSize == .small ? 22 : 26)
     }
 
     private var widgetBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: layout.cornerRadius, style: .continuous)
 
         return ZStack {
             shape
