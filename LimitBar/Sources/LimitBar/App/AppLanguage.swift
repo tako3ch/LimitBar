@@ -50,4 +50,18 @@ struct AppStrings {
     var quitApp: String { isJapanese ? "アプリを終了する" : "Quit App" }
     var updatedPrefix: String { isJapanese ? "更新" : "Updated" }
     var openReport: String { isJapanese ? "使用量レポート" : "Usage Report" }
+    var safariAccessAlertTitle: String {
+        isJapanese ? "Safari ログインにはフルディスクアクセスが必要です" : "Safari login needs Full Disk Access"
+    }
+    var safariAccessAlertMessage: String {
+        isJapanese
+            ? "この Mac の既定ブラウザは Safari です。LimitBar が Safari のログイン状態を確認するには、システム設定でフルディスクアクセスを許可してください。"
+            : "Safari is your default browser on this Mac. To let LimitBar read Safari login state, grant Full Disk Access in System Settings."
+    }
+    var openSystemSettings: String {
+        isJapanese ? "システム設定を開く" : "Open System Settings"
+    }
+    var later: String {
+        isJapanese ? "あとで" : "Later"
+    }
 }

@@ -116,7 +116,11 @@ final class SettingsStore: ObservableObject {
 
     func connect(_ service: ServiceKind) throws {
         let session = try LocalAccountSessionDetector.shared.detectSession(for: service)
+        applyConnectedSession(session)
+    }
 
+    func applyConnectedSession(_ session: LocalAccountSession) {
+        let service = session.service
         switch service {
         case .codex:
             codexConnected = true

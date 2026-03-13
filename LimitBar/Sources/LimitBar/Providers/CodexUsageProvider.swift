@@ -7,19 +7,7 @@ struct CodexUsageProvider: UsageProvider {
 
     func fetchUsage() async throws -> UsageSnapshot {
         let session = try LocalAccountSessionDetector.shared.detectSession(for: service)
-        let data: Data
-
-        if session.bearerToken != nil {
-            let request = try session.makeRequest(
-                url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!,
-                userAgent: Self.browserUserAgent
-            )
-            let (responseData, response) = try await URLSession.shared.data(for: request)
-            try UsageProviderError.validate(response: response, service: service)
-            data = responseData
-        } else {
-            data = try await CodexWebUsageFetcher.shared.fetchUsage(using: session)
-        }
+        let data = try await fetchUsageWithBearerToken(using: session)
 
         let payload = try JSONDecoder().decode(CodexUsagePayload.self, from: data)
         let window = payload.rateLimit.primaryWindow ?? payload.rateLimit.secondaryWindow
@@ -32,6 +20,16 @@ struct CodexUsageProvider: UsageProvider {
             lastUpdated: .now,
             details: Self.details(from: payload)
         )
+    }
+
+    private func fetchUsageWithBearerToken(using session: LocalAccountSession) async throws -> Data {
+        let request = try session.makeRequest(
+            url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!,
+            userAgent: Self.browserUserAgent
+        )
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+        try UsageProviderError.validate(response: response, service: service)
+        return responseData
     }
 
     private static func details(from payload: CodexUsagePayload) -> String? {
@@ -50,6 +48,8 @@ struct CodexUsageProvider: UsageProvider {
 enum UsageProviderError: LocalizedError {
     case notImplemented(ServiceKind)
     case missingLocalSession(ServiceKind)
+    case localClientNotInstalled(ServiceKind, clientName: String)
+    case browserDataAccessDenied(ServiceKind, browserName: String)
     case invalidResponse(ServiceKind)
     case unauthorized(ServiceKind)
     case challengeRequired(ServiceKind)
@@ -60,10 +60,18 @@ enum UsageProviderError: LocalizedError {
             "\(service.displayName) provider is not implemented yet."
         case .missingLocalSession(let service):
             "\(service.displayName) is not logged in locally."
+        case .localClientNotInstalled(let service, let clientName):
+            "\(service.displayName) requires \(clientName) to be installed on this Mac."
+        case .browserDataAccessDenied(let service, let browserName):
+            "\(service.displayName) could not read \(browserName) login data on this Mac."
         case .invalidResponse(let service):
             "Could not read \(service.displayName) usage."
         case .unauthorized(let service):
-            "\(service.displayName) local session is expired."
+            if service == .codex {
+                "Codex app or CLI login is expired."
+            } else {
+                "\(service.displayName) local session is expired."
+            }
         case .challengeRequired(let service):
             "\(service.displayName) requires reopening the desktop app before usage can be read."
         }

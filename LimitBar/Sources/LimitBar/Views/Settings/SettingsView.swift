@@ -7,7 +7,6 @@ struct SettingsView: View {
     var onCheckForUpdates: (() -> Void)?
     @State private var disconnectConfirmationService: ServiceKind?
     @State private var connectionErrorMessage: String?
-    @State private var isShowingClaudeLogin = false
 
     var body: some View {
         Form {
@@ -215,16 +214,6 @@ struct SettingsView: View {
                 secondaryButton: .cancel(Text(strings.cancel))
             )
         }
-        .sheet(isPresented: $isShowingClaudeLogin) {
-            ClaudeLoginSheet(
-                strings: strings,
-                onCancel: { isShowingClaudeLogin = false },
-                onComplete: {
-                    isShowingClaudeLogin = false
-                    completeClaudeConnection()
-                }
-            )
-        }
     }
 
     private var strings: SettingsStrings {
@@ -239,24 +228,37 @@ struct SettingsView: View {
                 try settings.connect(service)
                 connectionErrorMessage = nil
                 Task { await usageStore.refresh() }
+            } catch UsageProviderError.localClientNotInstalled(.codex, _) {
+                connectionErrorMessage = strings.codexInstallPrompt
+            } catch UsageProviderError.missingLocalSession(.codex) {
+                connectionErrorMessage = strings.codexLoginPrompt
             } catch UsageProviderError.missingLocalSession(.claudeCode) {
-                isShowingClaudeLogin = true
-            } catch UsageProviderError.missingLocalSession(let missingService) where AppEnvironment.isBundledApp {
-                NSWorkspace.shared.open(missingService.loginURL)
-                connectionErrorMessage = strings.browserLoginPrompt(missingService.displayName)
+                let launchedBrowser = openClaudeLoginPage()
+                connectionErrorMessage = browserPrompt(for: launchedBrowser, service: .claudeCode)
+            } catch UsageProviderError.browserDataAccessDenied(let deniedService, let browserName) {
+                connectionErrorMessage = strings.browserAccessDenied(serviceName: deniedService.displayName, browserName: browserName)
             } catch {
                 connectionErrorMessage = error.localizedDescription
             }
         }
     }
 
-    private func completeClaudeConnection() {
-        do {
-            try settings.connect(.claudeCode)
-            connectionErrorMessage = nil
-            Task { await usageStore.refresh() }
-        } catch {
-            connectionErrorMessage = error.localizedDescription
+    private func openClaudeLoginPage() -> BrowserLaunchTarget {
+        BrowserLaunchService.shared.openDefaultBrowser(for: ServiceKind.claudeCode.loginURL)
+    }
+
+    private func browserPrompt(for browser: BrowserLaunchTarget, service: ServiceKind) -> String {
+        switch browser.family {
+        case .safari:
+            if BrowserCookieStore.shared.safariCookieAccessState() == .permissionDenied {
+                strings.safariFullDiskAccessPrompt(service.displayName, browserName: browser.displayName)
+            } else {
+                strings.browserLoginPrompt(service.displayName, browserName: browser.displayName)
+            }
+        case .chromium:
+            strings.browserLoginPrompt(service.displayName, browserName: browser.displayName)
+        case .other:
+            strings.browserLoginPrompt(service.displayName, browserName: browser.displayName)
         }
     }
 }
@@ -388,25 +390,33 @@ struct SettingsStrings {
     var cancel: String { isJapanese ? "キャンセル" : "Cancel" }
     var ok: String { isJapanese ? "OK" : "OK" }
     var connectionErrorTitle: String { isJapanese ? "接続に失敗しました" : "Connection failed" }
-
-    // Claude ログイン
-    var claudeLoginTitle: String { isJapanese ? "Claude にログイン" : "Sign in to Claude" }
-    var claudeLoginDescription: String {
+    var codexInstallPrompt: String {
         isJapanese
-            ? "この画面で Claude にログインすると、LimitBar が使用状況取得に必要なセッションを安全に保存します。"
-            : "Sign in to Claude here and LimitBar will securely save the session needed to fetch usage."
+            ? "Codex の使用量を取得するには、Codex アプリまたは CLI をこの Mac にインストールしてください。インストール後、Codex 側でログインしてから再度接続してください。"
+            : "To fetch Codex usage, install the Codex app or CLI on this Mac. After installing, sign in to Codex and then connect again."
     }
-    var claudeLoginLoading: String { isJapanese ? "ログイン画面を準備しています..." : "Preparing Claude login..." }
-    var claudeLoginOpening: String { isJapanese ? "ログイン画面を開いています..." : "Opening Claude login..." }
-    var claudeLoginWaiting: String { isJapanese ? "ログイン完了を待っています..." : "Waiting for Claude login..." }
-    var claudeLoginSaving: String { isJapanese ? "セッションを保存しています..." : "Saving Claude session..." }
-    var claudeLoginConnected: String { isJapanese ? "Claude セッションを接続しました。" : "Claude session connected." }
-    var claudeLoginLoadFailed: String { isJapanese ? "ログイン画面を読み込めませんでした。" : "Claude login failed to load." }
-
-    func browserLoginPrompt(_ serviceName: String) -> String {
+    var codexLoginPrompt: String {
         isJapanese
-            ? "\(serviceName) のローカルログインが見つからなかったため、ブラウザを開きました。ログイン後にアプリへ戻って再度接続してください。"
-            : "No local \(serviceName) login was found, so the browser was opened. Sign in, then return and connect again."
+            ? "Codex の使用量を取得するには、Codex アプリまたは CLI でログインしてください。ログイン後に LimitBar へ戻って再度接続してください。"
+            : "To fetch Codex usage, sign in through the Codex app or CLI. Then return to LimitBar and connect again."
+    }
+
+    func browserLoginPrompt(_ serviceName: String, browserName: String) -> String {
+        isJapanese
+            ? "\(serviceName) のローカルログインが見つからなかったため、\(browserName) を開きました。ログイン後にアプリへ戻って再度接続してください。"
+            : "No local \(serviceName) login was found, so \(browserName) was opened. Sign in, then return and connect again."
+    }
+
+    func safariFullDiskAccessPrompt(_ serviceName: String, browserName: String) -> String {
+        isJapanese
+            ? "\(serviceName) のローカルログインが見つからなかったため、\(browserName) を開きました。Safari ログインを使うには LimitBar にフルディスクアクセスを許可してください。その後、ログインしてアプリへ戻り、もう一度接続してください。"
+            : "No local \(serviceName) login was found, so \(browserName) was opened. To use a Safari login, grant LimitBar Full Disk Access, then sign in and return to connect again."
+    }
+
+    func browserAccessDenied(serviceName: String, browserName: String) -> String {
+        isJapanese
+            ? "\(serviceName) は \(browserName) のログイン情報にアクセスできませんでした。macOS の権限制限で Safari データが読めない状態です。必要に応じて LimitBar にフルディスクアクセスを付与するか、Chrome 系ブラウザまたはデスクトップ側ログインを利用してください。"
+            : "\(serviceName) could not access \(browserName) login data. macOS is blocking Safari data access. Grant LimitBar Full Disk Access if needed, or use a Chromium-based browser or desktop login instead."
     }
 
     func minutes(_ value: Int) -> String {

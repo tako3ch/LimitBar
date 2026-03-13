@@ -16,6 +16,7 @@ final class AppModel: ObservableObject {
     private let updaterController: SPUStandardUpdaterController?
     private var cancellables: Set<AnyCancellable> = []
     private var hasStarted = false
+    private var hasShownSafariAccessPrompt = false
     private var reportWindow: NSWindow?
 
     init() {
@@ -98,6 +99,7 @@ final class AppModel: ObservableObject {
                 self.settings.menuBarEnabled = value
             }
             .store(in: &cancellables)
+
     }
 
     func start() {
@@ -109,6 +111,7 @@ final class AppModel: ObservableObject {
             return
         }
 
+        promptForSafariFullDiskAccessIfNeeded()
         usageStore.start()
         widgetController.update(using: usageStore, settings: settings)
         // アプリ起動完了後に Sparkle を開始
@@ -132,6 +135,30 @@ final class AppModel: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
         NSApp.terminate(nil)
+    }
+
+    private func promptForSafariFullDiskAccessIfNeeded() {
+        guard !hasShownSafariAccessPrompt else { return }
+
+        let defaultBrowser = BrowserLaunchService.shared.defaultBrowser(for: ServiceKind.claudeCode.loginURL)
+        guard defaultBrowser.family == .safari else { return }
+        guard BrowserCookieStore.shared.safariCookieAccessState() == .permissionDenied else { return }
+
+        hasShownSafariAccessPrompt = true
+
+        let strings = AppStrings(language: settings.appLanguage)
+        let alert = NSAlert()
+        alert.messageText = strings.safariAccessAlertTitle
+        alert.informativeText = strings.safariAccessAlertMessage
+        alert.addButton(withTitle: strings.openSystemSettings)
+        alert.addButton(withTitle: strings.later)
+        alert.alertStyle = .warning
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            _ = BrowserLaunchService.shared.openFullDiskAccessSettings()
+        }
     }
 
     func checkForUpdates() {
