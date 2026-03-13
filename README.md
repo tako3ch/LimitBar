@@ -2,7 +2,7 @@
 
 Minimal macOS menu bar monitor for Codex and Claude Code usage.
 
-![screenshot](https://tako3ch.github.io/LimitBar/imgs/cover.jpg)
+![screenshot](docs/imgs/cover.jpg)
 
 ## Download
 
