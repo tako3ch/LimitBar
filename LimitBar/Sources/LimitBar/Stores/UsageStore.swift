@@ -71,6 +71,7 @@ final class UsageStore: ObservableObject {
                 case .success(let snapshot):
                     snapshots.append(snapshot)
                 case .failure(let error):
+                    handleConnectionFailure(error)
                     errors.append(error.localizedDescription)
                 }
             }
@@ -94,6 +95,23 @@ final class UsageStore: ObservableObject {
 
         if snapshots.isEmpty {
             lastRefreshError = nil
+        }
+    }
+
+    private func handleConnectionFailure(_ error: Error) {
+        guard let providerError = error as? UsageProviderError else { return }
+
+        switch providerError {
+        case .missingLocalSession(let service),
+             .localClientNotInstalled(let service, _),
+             .unauthorized(let service):
+            settings.disconnect(service)
+            disconnect(service)
+        case .notImplemented,
+             .browserDataAccessDenied,
+             .invalidResponse,
+             .challengeRequired:
+            break
         }
     }
 

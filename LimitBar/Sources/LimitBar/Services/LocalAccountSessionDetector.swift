@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SQLite3
 
 struct LocalAccountSession {
@@ -34,6 +35,8 @@ struct LocalAccountSession {
 struct LocalAccountSessionDetector: Sendable {
     static let shared = LocalAccountSessionDetector()
 
+    private let logger = Logger(subsystem: "LimitBar", category: "LocalAccountSessionDetector")
+
     func hasSession(for service: ServiceKind) -> Bool {
         (try? detectSession(for: service)) != nil
     }
@@ -48,39 +51,12 @@ struct LocalAccountSessionDetector: Sendable {
     }
 
     private func detectCodexSession() throws -> LocalAccountSession {
-        if let localSession = try? detectCodexAppSession() {
-            return localSession
+        do {
+            return try CodexDesktopSessionService.shared.detectSession()
+        } catch {
+            logger.error("Codex desktop session detection failed: \(String(describing: error), privacy: .public)")
+            throw error
         }
-
-        if let browserSession = try? BrowserCodexSessionDetector.shared.detectSession() {
-            return browserSession
-        }
-
-        throw UsageProviderError.missingLocalSession(.codex)
-    }
-
-    private func detectCodexAppSession() throws -> LocalAccountSession {
-        let authURL = FileManager.default.homeDirectoryForCurrentUser
-            .appending(path: ".codex")
-            .appending(path: "auth.json")
-        let data = try Data(contentsOf: authURL)
-        let auth = try JSONDecoder().decode(CodexAuthFile.self, from: data)
-
-        guard let accessToken = auth.tokens.accessToken, !accessToken.isEmpty else {
-            throw UsageProviderError.missingLocalSession(.codex)
-        }
-
-        let profile = Self.decodeJWTProfile(from: auth.tokens.idToken)
-        let labelParts = [profile?.email, profile?.planType?.capitalized].compactMap { $0 }
-        let label = labelParts.isEmpty ? ServiceKind.codex.accountLabel : labelParts.joined(separator: " • ")
-
-        return LocalAccountSession(
-            service: .codex,
-            label: label,
-            bearerToken: accessToken,
-            cookies: [],
-            organizationID: nil
-        )
     }
 
     private func detectClaudeSession() throws -> LocalAccountSession {
@@ -88,8 +64,15 @@ struct LocalAccountSessionDetector: Sendable {
             return storedSession
         }
 
-        if let browserSession = try? BrowserClaudeSessionDetector.shared.detectSession() {
-            return browserSession
+        do {
+            return try BrowserClaudeSessionDetector.shared.detectSession()
+        } catch UsageProviderError.missingLocalSession(.claudeCode) {
+            logger.info("Claude browser session was not found")
+        } catch UsageProviderError.browserDataAccessDenied(.claudeCode, let browserName) {
+            logger.error("Claude browser session detection was denied for \(browserName, privacy: .public)")
+            throw UsageProviderError.browserDataAccessDenied(.claudeCode, browserName: browserName)
+        } catch {
+            logger.error("Claude browser session detection failed: \(String(describing: error), privacy: .public)")
         }
 
         let databaseURL = FileManager.default.homeDirectoryForCurrentUser
@@ -97,6 +80,10 @@ struct LocalAccountSessionDetector: Sendable {
             .appending(path: "Application Support")
             .appending(path: "Claude")
             .appending(path: "Cookies")
+
+        guard FileManager.default.fileExists(atPath: databaseURL.path) else {
+            throw UsageProviderError.missingLocalSession(.claudeCode)
+        }
 
         let cookies = try loadCookies(from: databaseURL, matching: ["%claude.ai%", "%anthropic.com%"])
         guard !cookies.isEmpty else {
@@ -190,7 +177,7 @@ struct LocalAccountSessionDetector: Sendable {
         return results
     }
 
-    private static func decodeJWTProfile(from token: String?) -> JWTProfile? {
+    static func decodeJWTProfile(from token: String?) -> JWTProfile? {
         guard let token else { return nil }
         let segments = token.split(separator: ".")
         guard segments.count >= 2 else { return nil }
@@ -219,7 +206,7 @@ struct LocalAccountSessionDetector: Sendable {
     }
 }
 
-private struct CodexAuthFile: Decodable {
+struct CodexAuthFile: Decodable {
     let tokens: Tokens
 
     struct Tokens: Decodable {
@@ -233,7 +220,7 @@ private struct CodexAuthFile: Decodable {
     }
 }
 
-private struct JWTProfile: Decodable {
+struct JWTProfile: Decodable {
     let email: String?
     let auth: JWTAuthPayload?
 
@@ -247,7 +234,7 @@ private struct JWTProfile: Decodable {
     }
 }
 
-private struct JWTAuthPayload: Decodable {
+struct JWTAuthPayload: Decodable {
     let chatgptPlanType: String?
 
     enum CodingKeys: String, CodingKey {
