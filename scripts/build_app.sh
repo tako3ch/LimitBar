@@ -117,12 +117,8 @@ if [[ -d "$SPARKLE_FRAMEWORK" ]]; then
   mkdir -p "$APP_DIR/Contents/Frameworks"
   cp -R "$SPARKLE_FRAMEWORK" "$APP_DIR/Contents/Frameworks/"
 
-  # XPCServices を Contents/XPCServices/ にコピー
-  XPC_SRC="$APP_DIR/Contents/Frameworks/Sparkle.framework/XPCServices"
-  if [[ -d "$XPC_SRC" ]]; then
-    mkdir -p "$APP_DIR/Contents/XPCServices"
-    cp -R "$XPC_SRC/"*.xpc "$APP_DIR/Contents/XPCServices/"
-  fi
+  # 非サンドボックスアプリは XPC サービスを Sparkle.framework 内に置く
+  # Contents/XPCServices/ へのコピーはサンドボックスアプリのみ必要
 else
   echo "WARNING: Sparkle.framework not found — skipping embed" >&2
 fi
@@ -154,15 +150,7 @@ if [[ -d "$SPARKLE_EMBED" ]]; then
     "$SPARKLE_EMBED"
 fi
 
-# 5. Contents/XPCServices/ にコピーした XPC サービスを署名
-if [[ -d "$APP_DIR/Contents/XPCServices" ]]; then
-  for xpc in "$APP_DIR/Contents/XPCServices/"*.xpc; do
-    [[ -d "$xpc" ]] && \
-      codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$xpc"
-  done
-fi
-
-# 6. アプリ本体を署名
+# 5. アプリ本体を署名
 codesign --force --options runtime --timestamp \
   --entitlements "$ENTITLEMENTS" \
   --sign "$SIGN_IDENTITY" \

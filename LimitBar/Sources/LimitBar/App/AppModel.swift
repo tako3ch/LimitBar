@@ -106,7 +106,9 @@ final class AppModel: ObservableObject {
         usageStore.start()
         widgetController.update(using: usageStore, settings: settings)
         // アプリ起動完了後に Sparkle を開始
-        try? updaterController?.updater.start()
+        if let updater = updaterController?.updater {
+            try? updater.start()
+        }
     }
 
     func checkForUpdates() {
