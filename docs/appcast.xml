@@ -3,13 +3,13 @@
     <channel>
         <title>LimitBar</title>
         <item>
-            <title>0.2.0</title>
-            <pubDate>Fri, 13 Mar 2026 15:00:00 +0900</pubDate>
-            <sparkle:version>2</sparkle:version>
-            <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+            <title>0.3.0</title>
+            <pubDate>Fri, 13 Mar 2026 07:57:03 +0000</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/tako3ch/LimitBar/releases/download/v0.2.0/LimitBar.dmg" length="3855568" type="application/octet-stream" sparkle:edSignature="9D/Ascyo2EKLghQOD9DRxLOqWWHR1R+5hhlHpRPvc7qojPaiC0PxhdKjeX/89qTNI02hcKiaVWK3jxy+bW06AQ=="/>
+            <enclosure url="https://github.com/tako3ch/LimitBar/releases/download/v0.3.0/LimitBar.dmg" length="3892908" type="application/octet-stream" sparkle:edSignature="E7EyHjyhcU/B/WD+gnDg4t7JgM7tB+hjF5wpSFJdfAh4VqCP9wRUlmohjPgjwk85+/8aqQ71xiCgIvB1iErBBQ=="/>
         </item>
     </channel>
 </rss>
