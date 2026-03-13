@@ -56,48 +56,48 @@ final class CodexWebUsageFetcher: NSObject {
             guard !hasStartedFetch else { return }
             hasStartedFetch = true
 
+            // fetch() は Promise を返すため evaluateJavaScript ではなく callAsyncJavaScript を使う
             let script = """
-            fetch('https://chatgpt.com/backend-api/wham/usage', {
+            const response = await fetch('https://chatgpt.com/backend-api/wham/usage', {
               credentials: 'include',
               headers: { 'accept': 'application/json' }
-            }).then(async response => {
-              const body = await response.text();
-              return JSON.stringify({ status: response.status, body });
             });
+            const body = await response.text();
+            return JSON.stringify({ status: response.status, body });
             """
 
-            webView.evaluateJavaScript(script) { [weak self] result, error in
+            webView.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { [weak self] result in
                 guard let self, let continuation = self.continuation else { return }
                 self.continuation = nil
 
-                if let error {
+                switch result {
+                case .failure(let error):
                     continuation.resume(throwing: error)
-                    return
-                }
-
-                guard
-                    let payload = result as? String,
-                    let data = payload.data(using: .utf8),
-                    let response = try? JSONDecoder().decode(WebFetchResponse.self, from: data)
-                else {
-                    continuation.resume(throwing: UsageProviderError.invalidResponse(.codex))
-                    return
-                }
-
-                switch response.status {
-                case 200...299:
-                    guard let bodyData = response.body.data(using: .utf8) else {
+                case .success(let value):
+                    guard
+                        let payload = value as? String,
+                        let data = payload.data(using: .utf8),
+                        let response = try? JSONDecoder().decode(WebFetchResponse.self, from: data)
+                    else {
                         continuation.resume(throwing: UsageProviderError.invalidResponse(.codex))
                         return
                     }
-                    continuation.resume(returning: bodyData)
-                case 401, 403:
-                    continuation.resume(throwing: UsageProviderError.unauthorized(.codex))
-                default:
-                    if response.body.localizedCaseInsensitiveContains("Just a moment") {
-                        continuation.resume(throwing: UsageProviderError.challengeRequired(.codex))
-                    } else {
-                        continuation.resume(throwing: UsageProviderError.invalidResponse(.codex))
+
+                    switch response.status {
+                    case 200...299:
+                        guard let bodyData = response.body.data(using: .utf8) else {
+                            continuation.resume(throwing: UsageProviderError.invalidResponse(.codex))
+                            return
+                        }
+                        continuation.resume(returning: bodyData)
+                    case 401, 403:
+                        continuation.resume(throwing: UsageProviderError.unauthorized(.codex))
+                    default:
+                        if response.body.localizedCaseInsensitiveContains("Just a moment") {
+                            continuation.resume(throwing: UsageProviderError.challengeRequired(.codex))
+                        } else {
+                            continuation.resume(throwing: UsageProviderError.invalidResponse(.codex))
+                        }
                     }
                 }
             }

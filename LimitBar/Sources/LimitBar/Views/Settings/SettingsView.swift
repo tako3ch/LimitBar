@@ -43,7 +43,7 @@ struct SettingsView: View {
 
                 Text(settings.displayMode == .minimal ? strings.minimalDescription : strings.normalDescription)
                     .font(.footnote)
-                    .foregroundStyle(LimitBarTheme.muted)
+                    .foregroundStyle(.secondary)
             } header: {
                 Label(strings.displayModeSection, systemImage: "rectangle.on.rectangle")
             }
@@ -75,7 +75,7 @@ struct SettingsView: View {
                         Spacer()
                         Text("\(Int(settings.widgetOpacity * 100))%")
                             .monospacedDigit()
-                            .foregroundStyle(LimitBarTheme.muted)
+                            .foregroundStyle(.secondary)
                     }
                     Slider(value: $settings.widgetOpacity, in: 0.3...1.0, step: 0.05)
                 }
@@ -108,12 +108,12 @@ struct SettingsView: View {
                         Spacer()
                         Text("\(Int(settings.thresholdPercent))%")
                             .monospacedDigit()
-                            .foregroundStyle(LimitBarTheme.muted)
+                            .foregroundStyle(.secondary)
                     }
                     Slider(value: $settings.thresholdPercent, in: 50...100, step: 1)
                     Text(strings.notificationThresholdDescription)
                         .font(.footnote)
-                        .foregroundStyle(LimitBarTheme.muted)
+                        .foregroundStyle(.secondary)
                 }
 
                 Picker(strings.autoRefresh, selection: $settings.refreshInterval) {
@@ -144,12 +144,12 @@ struct SettingsView: View {
 
                 Text(strings.notificationsDescription)
                     .font(.footnote)
-                    .foregroundStyle(LimitBarTheme.muted)
+                    .foregroundStyle(.secondary)
 
                 if !AppEnvironment.supportsUserNotifications {
                     Text(strings.notificationsAppOnly)
                         .font(.footnote)
-                        .foregroundStyle(LimitBarTheme.muted)
+                        .foregroundStyle(.secondary)
                 }
             } header: {
                 Label(strings.monitoring, systemImage: "bell.badge")
@@ -168,7 +168,7 @@ struct SettingsView: View {
                 if !AppEnvironment.supportsLaunchAtLogin {
                     Text(strings.launchAtLoginAppOnly)
                         .font(.footnote)
-                        .foregroundStyle(LimitBarTheme.muted)
+                        .foregroundStyle(.secondary)
                 }
 
                 Button(strings.refreshNow) {
@@ -185,7 +185,7 @@ struct SettingsView: View {
                     Text(strings.version)
                     Spacer()
                     Text(AppVersion.current.displayString)
-                        .foregroundStyle(LimitBarTheme.muted)
+                        .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }
             } header: {
@@ -293,7 +293,7 @@ private struct AccountIntegrationRow: View {
 
                 Text(isConnected ? (accountLabel ?? strings.accountLabel(for: service)) : strings.linkAccount(service.displayName))
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(LimitBarTheme.muted)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()

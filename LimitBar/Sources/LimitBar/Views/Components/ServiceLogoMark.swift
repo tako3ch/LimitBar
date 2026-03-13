@@ -24,7 +24,7 @@ struct ServiceLogoMark: View {
     }
 
     private var logoImage: NSImage? {
-        guard let url = Bundle.module.url(forResource: imageName, withExtension: "png") else {
+        guard let url = Bundle.moduleResources.url(forResource: imageName, withExtension: "png") else {
             return nil
         }
         return NSImage(contentsOf: url)

@@ -20,7 +20,7 @@ struct AppVersion {
         }
 
         guard
-            let url = Bundle.module.url(forResource: "AppVersion", withExtension: "plist"),
+            let url = Bundle.moduleResources.url(forResource: "AppVersion", withExtension: "plist"),
             let data = try? Data(contentsOf: url),
             let rawValue = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
             let marketingVersion = rawValue["MarketingVersion"] as? String,
