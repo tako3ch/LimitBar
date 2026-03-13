@@ -25,7 +25,7 @@ final class WidgetWindowController {
         } else {
             width = settings.widgetSize == .small ? 240 : 290
         }
-        let rowCount = max(usageStore.snapshots.count, 1)
+        let rowCount = max(displayedRowCount(for: usageStore, settings: settings), 1)
         let rowHeight = settings.displayMode == .minimal
             ? (settings.widgetSize == .small ? 22.0 : 26.0)
             : (settings.widgetSize == .small ? 18.0 : 22.0)
@@ -57,6 +57,13 @@ final class WidgetWindowController {
         )
         updatePanelOrigin(for: panel, position: settings.widgetPosition)
         return panel
+    }
+
+    private func displayedRowCount(for usageStore: UsageStore, settings: SettingsStore) -> Int {
+        usageStore.snapshots.reduce(0) { count, snapshot in
+            let showsWeekly = settings.showsWeeklyLimitInWidget(for: snapshot.service) && snapshot.clampedWeeklyPercent != nil
+            return count + 1 + (showsWeekly ? 1 : 0)
+        }
     }
 
     private func updatePanelOrigin(for panel: NSPanel, position: WidgetPosition) {

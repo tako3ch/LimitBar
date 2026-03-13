@@ -17,8 +17,8 @@ enum PreviewSupport {
             ]
         )
         store.seedForPreview([
-            UsageSnapshot(service: .codex, usedPercent: 72, status: .warning, lastUpdated: .now, details: "Mock"),
-            UsageSnapshot(service: .claudeCode, usedPercent: 41, status: .normal, lastUpdated: .now, details: "Mock")
+            UsageSnapshot(service: .codex, usedPercent: 72, status: .warning, lastUpdated: .now, details: "Mock", weeklyPercent: 54),
+            UsageSnapshot(service: .claudeCode, usedPercent: 41, status: .normal, lastUpdated: .now, details: "Mock", weeklyPercent: 63)
         ])
         return store
     }()

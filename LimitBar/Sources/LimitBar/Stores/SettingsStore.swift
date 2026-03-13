@@ -35,6 +35,12 @@ final class SettingsStore: ObservableObject {
     @Published var widgetServiceOrder: [String] {
         didSet { defaults.set(widgetServiceOrder, forKey: "widgetServiceOrder") }
     }
+    @Published var showClaudeWeeklyLimitInWidget: Bool {
+        didSet { save("showClaudeWeeklyLimitInWidget", value: showClaudeWeeklyLimitInWidget) }
+    }
+    @Published var showCodexWeeklyLimitInWidget: Bool {
+        didSet { save("showCodexWeeklyLimitInWidget", value: showCodexWeeklyLimitInWidget) }
+    }
 
     private let defaults: UserDefaults
     init(defaults: UserDefaults = .standard) {
@@ -65,6 +71,8 @@ final class SettingsStore: ObservableObject {
         displayMode = DisplayMode(rawValue: storedDisplayMode) ?? .normal
         widgetOpacity = defaults.object(forKey: "widgetOpacity") as? Double ?? 0.85
         widgetServiceOrder = (defaults.array(forKey: "widgetServiceOrder") as? [String]) ?? ["codex", "claudeCode"]
+        showClaudeWeeklyLimitInWidget = defaults.object(forKey: "showClaudeWeeklyLimitInWidget") as? Bool ?? false
+        showCodexWeeklyLimitInWidget = defaults.object(forKey: "showCodexWeeklyLimitInWidget") as? Bool ?? false
 
         if !AppEnvironment.supportsLaunchAtLogin && storedLaunchAtLogin {
             defaults.set(false, forKey: "launchAtLogin")
@@ -153,6 +161,15 @@ final class SettingsStore: ObservableObject {
             codexAccountLabel
         case .claudeCode:
             claudeAccountLabel
+        }
+    }
+
+    func showsWeeklyLimitInWidget(for service: ServiceKind) -> Bool {
+        switch service {
+        case .codex:
+            showCodexWeeklyLimitInWidget
+        case .claudeCode:
+            showClaudeWeeklyLimitInWidget
         }
     }
 

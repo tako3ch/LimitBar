@@ -73,9 +73,13 @@ struct UsageSnapshot: Identifiable, Equatable, Codable {
     let status: UsageStatus
     let lastUpdated: Date
     let details: String?
+    let weeklyPercent: Double?
 
     var id: ServiceKind { service }
     var clampedPercent: Double { min(max(usedPercent, 0), 100) }
+    var clampedWeeklyPercent: Double? {
+        weeklyPercent.map { min(max($0, 0), 100) }
+    }
 
     static func status(for percent: Double) -> UsageStatus {
         switch percent {

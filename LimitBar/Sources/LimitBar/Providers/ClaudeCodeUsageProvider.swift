@@ -24,7 +24,8 @@ struct ClaudeCodeUsageProvider: UsageProvider {
             usedPercent: percent,
             status: UsageSnapshot.status(for: percent),
             lastUpdated: .now,
-            details: Self.details(from: payload)
+            details: Self.details(from: payload),
+            weeklyPercent: payload.sevenDay?.utilization
         )
     }
 

@@ -93,6 +93,12 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .disabled(!settings.widgetEnabled)
+
+                Toggle(strings.showClaudeWeeklyLimitInWidget, isOn: $settings.showClaudeWeeklyLimitInWidget)
+                    .disabled(!settings.widgetEnabled)
+
+                Toggle(strings.showCodexWeeklyLimitInWidget, isOn: $settings.showCodexWeeklyLimitInWidget)
+                    .disabled(!settings.widgetEnabled)
             } header: {
                 Label(strings.widgetSection, systemImage: "macwindow.on.rectangle")
             } footer: {
@@ -353,6 +359,8 @@ struct SettingsStrings {
     var widgetOrder: String { isJapanese ? "表示順" : "Display order" }
     var widgetOrderCodexFirst: String { isJapanese ? "Codex を先に表示" : "Codex first" }
     var widgetOrderClaudeFirst: String { isJapanese ? "Claude Code を先に表示" : "Claude Code first" }
+    var showClaudeWeeklyLimitInWidget: String { isJapanese ? "Weekly Limits 表示(Claude Code)" : "Show Weekly Limits (Claude Code)" }
+    var showCodexWeeklyLimitInWidget: String { isJapanese ? "Weekly Limits 表示(Codex)" : "Show Weekly Limits (Codex)" }
 
     // 通知・更新
     var notificationThreshold: String { isJapanese ? "通知しきい値" : "Notification threshold" }

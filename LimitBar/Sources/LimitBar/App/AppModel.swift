@@ -63,6 +63,8 @@ final class AppModel: ObservableObject {
                     .combineLatest(settings.$widgetSize)
                     .combineLatest(settings.$widgetPosition)
                     .combineLatest(settings.$displayMode)
+                    .combineLatest(settings.$showClaudeWeeklyLimitInWidget)
+                    .combineLatest(settings.$showCodexWeeklyLimitInWidget)
             )
             .receive(on: RunLoop.main)
             .sink { [weak self] _, _ in
