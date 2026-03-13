@@ -401,20 +401,6 @@ struct SettingsStrings {
             : "To fetch Codex usage, sign in through the Codex app or CLI. Then return to LimitBar and connect again."
     }
 
-    // Claude ログイン
-    var claudeLoginTitle: String { isJapanese ? "Claude にログイン" : "Sign in to Claude" }
-    var claudeLoginDescription: String {
-        isJapanese
-            ? "この画面で Claude にログインすると、LimitBar が使用状況取得に必要なセッションを安全に保存します。"
-            : "Sign in to Claude here and LimitBar will securely save the session needed to fetch usage."
-    }
-    var claudeLoginLoading: String { isJapanese ? "ログイン画面を準備しています..." : "Preparing Claude login..." }
-    var claudeLoginOpening: String { isJapanese ? "ログイン画面を開いています..." : "Opening Claude login..." }
-    var claudeLoginWaiting: String { isJapanese ? "ログイン完了を待っています..." : "Waiting for Claude login..." }
-    var claudeLoginSaving: String { isJapanese ? "セッションを保存しています..." : "Saving Claude session..." }
-    var claudeLoginConnected: String { isJapanese ? "Claude セッションを接続しました。" : "Claude session connected." }
-    var claudeLoginLoadFailed: String { isJapanese ? "ログイン画面を読み込めませんでした。" : "Claude login failed to load." }
-
     func browserLoginPrompt(_ serviceName: String, browserName: String) -> String {
         isJapanese
             ? "\(serviceName) のローカルログインが見つからなかったため、\(browserName) を開きました。ログイン後にアプリへ戻って再度接続してください。"
