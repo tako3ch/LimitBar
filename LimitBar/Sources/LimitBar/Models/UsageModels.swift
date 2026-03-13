@@ -54,6 +54,7 @@ enum ServiceKind: String, CaseIterable, Identifiable, Codable {
 enum UsageStatus: String, Codable {
     case normal
     case warning
+    case high
     case limitNear = "limit_near"
     case resetDetected = "reset_detected"
 
@@ -61,6 +62,7 @@ enum UsageStatus: String, Codable {
         switch self {
         case .normal: "normal"
         case .warning: "warning"
+        case .high: "high"
         case .limitNear: "limit near"
         case .resetDetected: "reset detected"
         }
@@ -82,16 +84,19 @@ struct UsageSnapshot: Identifiable, Equatable, Codable {
     }
 
     static func status(for percent: Double) -> UsageStatus {
-        switch percent {
-        case 0:
-            .resetDetected
-        case 90...:
-            .limitNear
-        case 70..<90:
-            .warning
-        default:
-            .normal
+        if percent == 0 {
+            return .resetDetected
         }
+        if percent > 90 {
+            return .limitNear
+        }
+        if percent > 80 {
+            return .high
+        }
+        if percent > 70 {
+            return .warning
+        }
+        return .normal
     }
 
     static func resetDescription(after seconds: Int) -> String {

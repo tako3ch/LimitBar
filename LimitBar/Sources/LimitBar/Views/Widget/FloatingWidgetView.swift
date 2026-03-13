@@ -12,6 +12,14 @@ struct FloatingWidgetView: View {
         let percent: Double
         let status: UsageStatus
         let isWeekly: Bool
+
+        var barTint: Color {
+            isWeekly ? service.weeklyColor : LimitBarTheme.progressColor(for: percent, service: service)
+        }
+
+        var percentageTint: Color {
+            isWeekly ? LimitBarTheme.weeklyText : LimitBarTheme.severityColor(for: percent)
+        }
     }
 
     private var strings: AppStrings {
@@ -120,13 +128,13 @@ struct FloatingWidgetView: View {
                 .foregroundStyle(LimitBarTheme.strongText)
                 .frame(width: 84, alignment: .leading)
 
-            ProgressPill(percent: snapshot.percent, tint: snapshot.status.tint)
+            ProgressPill(percent: snapshot.percent, tint: snapshot.barTint)
                 .frame(height: 6)
 
             Text("\(Int(snapshot.percent))%")
                 .font(.system(size: settings.widgetSize == .small ? 14 : 16, weight: .thin, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(LimitBarTheme.strongText)
+                .foregroundStyle(snapshot.percentageTint)
                 .frame(width: 42, alignment: .trailing)
         }
         .frame(height: settings.widgetSize == .small ? 18 : 22)
@@ -148,7 +156,7 @@ struct FloatingWidgetView: View {
             Text("\(Int(snapshot.percent))%")
                 .font(.system(size: settings.widgetSize == .small ? 20 : 24, weight: .light, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(LimitBarTheme.strongText)
+                .foregroundStyle(snapshot.percentageTint)
                 .frame(width: settings.widgetSize == .small ? 58 : 70, alignment: .trailing)
         }
         .frame(height: settings.widgetSize == .small ? 22 : 26)
