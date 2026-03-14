@@ -4,6 +4,7 @@ import SwiftUI
 struct FloatingWidgetView: View {
     @ObservedObject var usageStore: UsageStore
     @ObservedObject var settings: SettingsStore
+    @Environment(\.colorScheme) private var colorScheme
 
     private struct WidgetUsageRow: Identifiable {
         let id: String
@@ -163,7 +164,7 @@ struct FloatingWidgetView: View {
 
         return ZStack {
             shape
-                .fill(Color.black.opacity(0.34))
+                .fill(Color.black.opacity(colorScheme == .light ? 0.55 : 0.34))
 
             shape
                 .fill(.ultraThinMaterial)

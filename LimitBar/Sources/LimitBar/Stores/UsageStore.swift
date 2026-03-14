@@ -11,6 +11,7 @@ final class UsageStore: ObservableObject {
     private let providers: [AnyUsageProvider]
     private var timer: Timer?
     private var didNotifyLimit: [ServiceKind: Bool] = [:]
+    private var didNotifyZeroReset: [ServiceKind: Bool] = [:]
     private var previousPercent: [ServiceKind: Double] = [:]
 
     init(
@@ -101,6 +102,7 @@ final class UsageStore: ObservableObject {
         snapshots.removeAll { $0.service == service }
         previousPercent[service] = nil
         didNotifyLimit[service] = nil
+        didNotifyZeroReset[service] = nil
 
         if snapshots.isEmpty {
             lastRefreshError = nil
@@ -141,8 +143,13 @@ final class UsageStore: ObservableObject {
             let threshold = settings.thresholdPercent
             let previous = previousPercent[snapshot.service]
             let crossedThreshold = (previous ?? 0) < threshold && snapshot.clampedPercent >= threshold
-            let resetDetected = if let previous {
-                snapshot.clampedPercent == 0 || (previous > snapshot.clampedPercent && snapshot.clampedPercent < 10)
+            let zeroResetDetected = if let previous {
+                snapshot.clampedPercent == 0 && previous > 0
+            } else {
+                false
+            }
+            let lowUsageResetDetected = if let previous {
+                snapshot.clampedPercent > 0 && previous > snapshot.clampedPercent && snapshot.clampedPercent < 10
             } else {
                 false
             }
@@ -159,7 +166,20 @@ final class UsageStore: ObservableObject {
                 didNotifyLimit[snapshot.service] = false
             }
 
-            if resetDetected, settings.notificationsEnabled {
+            if snapshot.clampedPercent > 0 {
+                didNotifyZeroReset[snapshot.service] = false
+            }
+
+            if zeroResetDetected, settings.notificationsEnabled, didNotifyZeroReset[snapshot.service] != true {
+                notificationManager.post(
+                    title: "\(snapshot.service.displayName) reset",
+                    body: "Usage returned to \(Int(snapshot.clampedPercent))%"
+                )
+                didNotifyZeroReset[snapshot.service] = true
+                didNotifyLimit[snapshot.service] = false
+            }
+
+            if lowUsageResetDetected, settings.notificationsEnabled {
                 notificationManager.post(
                     title: "\(snapshot.service.displayName) reset",
                     body: "Usage returned to \(Int(snapshot.clampedPercent))%"

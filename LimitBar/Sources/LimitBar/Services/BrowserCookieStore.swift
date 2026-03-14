@@ -47,7 +47,11 @@ struct BrowserCookieStore: Sendable {
                 profiles.append(contentsOf: try loadChromiumProfiles(in: browser, matching: normalizedDomains, fileManager: fileManager))
             } catch {
                 issues.append(BrowserCookieAccessIssue(browserName: browser.displayName, error: error))
-                logger.error("Failed to inspect \(browser.displayName, privacy: .public) cookies: \(String(describing: error), privacy: .public)")
+                if let cocoaError = error as? CocoaError, cocoaError.code == .fileReadNoPermission {
+                    logger.error("Failed to inspect \(browser.displayName, privacy: .public) cookies because access was denied. Full Disk Access may be required. Error: \(String(describing: error), privacy: .public)")
+                } else {
+                    logger.error("Failed to inspect \(browser.displayName, privacy: .public) cookies: \(String(describing: error), privacy: .public)")
+                }
             }
         }
 

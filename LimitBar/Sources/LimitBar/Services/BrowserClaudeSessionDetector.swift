@@ -29,8 +29,8 @@ struct BrowserClaudeSessionDetector: Sendable {
             )
         }
 
-        if scanResult.issues.contains(where: { $0.browserName == "Safari" && $0.isPermissionDenied }) {
-            throw UsageProviderError.browserDataAccessDenied(.claudeCode, browserName: "Safari")
+        if let deniedIssue = scanResult.issues.first(where: { $0.isPermissionDenied }) {
+            throw UsageProviderError.browserDataAccessDenied(.claudeCode, browserName: deniedIssue.browserName)
         }
 
         logger.info("No browser session found for Claude after inspecting Chromium and Safari cookie stores")

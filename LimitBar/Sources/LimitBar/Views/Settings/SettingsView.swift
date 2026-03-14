@@ -64,7 +64,18 @@ struct SettingsView: View {
             } header: {
                 Label(strings.accounts, systemImage: "person.2")
             } footer: {
-                Text(strings.accountsFooter)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(strings.accountsFooter)
+                    HStack(spacing: 0) {
+                        Text(strings.fullDiskAccessHint + " ")
+                        Button(strings.openSystemSettings) {
+                            NSWorkspace.shared.open(
+                                URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
+                            )
+                        }
+                        .buttonStyle(.link)
+                    }
+                }
             }
 
             // MARK: 表示モード
@@ -360,6 +371,14 @@ struct SettingsStrings {
             ? "ローカルのログインセッションを使って使用状況を取得します。"
             : "Usage is fetched using your local login session."
     }
+    var fullDiskAccessHint: String {
+        isJapanese
+            ? "ブラウザのログイン情報を読み取るにはフルディスクアクセスが必要な場合があります。"
+            : "Full Disk Access may be required to read browser login data."
+    }
+    var openSystemSettings: String {
+        isJapanese ? "システム設定を開く →" : "Open System Settings →"
+    }
     var widgetFooter: String {
         isJapanese
             ? "ウィジェットをオフにすると、以下の設定はすべて無効になります。"
@@ -449,8 +468,8 @@ struct SettingsStrings {
 
     func browserAccessDenied(serviceName: String, browserName: String) -> String {
         isJapanese
-            ? "\(serviceName) は \(browserName) のログイン情報にアクセスできませんでした。macOS の権限制限で Safari データが読めない状態です。必要に応じて LimitBar にフルディスクアクセスを付与するか、Chrome 系ブラウザまたはデスクトップ側ログインを利用してください。"
-            : "\(serviceName) could not access \(browserName) login data. macOS is blocking Safari data access. Grant LimitBar Full Disk Access if needed, or use a Chromium-based browser or desktop login instead."
+            ? "\(serviceName) は \(browserName) のログイン情報にアクセスできませんでした。LimitBar にフルディスクアクセスを付与してください（システム設定 → プライバシーとセキュリティ → フルディスクアクセス）。その後、もう一度接続してください。"
+            : "\(serviceName) could not access \(browserName) login data. Grant LimitBar Full Disk Access in System Settings → Privacy & Security → Full Disk Access, then try connecting again."
     }
 
     func minutes(_ value: Int) -> String {
