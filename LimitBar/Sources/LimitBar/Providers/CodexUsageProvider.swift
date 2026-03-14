@@ -34,15 +34,9 @@ struct CodexUsageProvider: UsageProvider {
     }
 
     private static func details(from payload: CodexUsagePayload) -> String? {
-        let pieces = [
-            payload.planType?.capitalized,
-            payload.email,
-            payload.rateLimit.primaryWindow.map {
-                "resets in \(UsageSnapshot.resetDescription(after: $0.resetAfterSeconds))"
-            }
-        ].compactMap { $0 }
-
-        return pieces.isEmpty ? nil : pieces.joined(separator: " • ")
+        payload.rateLimit.primaryWindow.map {
+            "resets in \(UsageSnapshot.resetDescription(after: $0.resetAfterSeconds))"
+        }
     }
 }
 
