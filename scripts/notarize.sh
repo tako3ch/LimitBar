@@ -6,7 +6,8 @@
 #   xcrun notarytool store-credentials "LimitBar" \
 #     --apple-id "your@apple.com" \
 #     --team-id "95U36FYLHZ" \
-#     --password "<app-specific-password>"
+#     --password "<app-specific-password>" \
+#     --keychain "$HOME/Library/Keychains/login.keychain-db"
 #
 # 使い方:
 #   ./scripts/notarize.sh              # dist/LimitBar.app を公証
@@ -20,9 +21,15 @@ VERSION="${VERSION:-$(/usr/libexec/PlistBuddy -c 'Print :MarketingVersion' "$VER
 DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist/v$VERSION}"
 TARGET="${TARGET:-$DIST_DIR/LimitBar.dmg}"
 KEYCHAIN_PROFILE="${KEYCHAIN_PROFILE:-LimitBar}"
+KEYCHAIN_PATH="${KEYCHAIN_PATH:-$HOME/Library/Keychains/login.keychain-db}"
 
 if [[ ! -e "$TARGET" ]]; then
   echo "Target not found: $TARGET" >&2
+  exit 1
+fi
+
+if [[ ! -f "$KEYCHAIN_PATH" ]]; then
+  echo "Keychain not found: $KEYCHAIN_PATH" >&2
   exit 1
 fi
 
@@ -36,9 +43,15 @@ else
   SUBMIT_PATH="$TARGET"
 fi
 
+echo "==> Validating notarization credentials"
+xcrun notarytool history \
+  --keychain-profile "$KEYCHAIN_PROFILE" \
+  --keychain "$KEYCHAIN_PATH" >/dev/null
+
 echo "==> Submitting for notarization: $SUBMIT_PATH"
 xcrun notarytool submit "$SUBMIT_PATH" \
   --keychain-profile "$KEYCHAIN_PROFILE" \
+  --keychain "$KEYCHAIN_PATH" \
   --wait
 
 [[ -n "${ZIP_PATH:-}" ]] && rm -f "$ZIP_PATH"
