@@ -21,6 +21,7 @@ DMG_ROOT="$DIST_DIR/dmg-root"
 DMG_PATH="$DIST_DIR/$DMG_NAME.dmg"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
 KEYCHAIN_PROFILE="${KEYCHAIN_PROFILE:-LimitBar}"
+KEYCHAIN_PATH="${KEYCHAIN_PATH:-$HOME/Library/Keychains/login.keychain-db}"
 
 if [[ ! -d "$APP_DIR" ]]; then
   echo "ERROR: App bundle not found: $APP_DIR" >&2
@@ -55,6 +56,7 @@ rm -rf "$DMG_ROOT"
 echo "==> Notarizing DMG"
 xcrun notarytool submit "$DMG_PATH" \
   --keychain-profile "$KEYCHAIN_PROFILE" \
+  --keychain "$KEYCHAIN_PATH" \
   --wait
 
 echo "==> Stapling notarization ticket to DMG"
