@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -13,11 +14,19 @@ struct LimitBarApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra(model.menuBarTitle, systemImage: "gauge.with.needle.fill", isInserted: Binding(
+        MenuBarExtra(isInserted: Binding(
             get: { model.menuBarEnabled },
             set: { value in model.setMenuBarEnabledFromUI(value) }
         )) {
             MenuBarDashboardView(settings: model.settings, usageStore: model.usageStore, showReport: { model.showReportWindow() })
+        } label: {
+            Label {
+                Text(model.menuBarTitle)
+            } icon: {
+                if let menuBarIconImage {
+                    Image(nsImage: menuBarIconImage)
+                }
+            }
         }
         .menuBarExtraStyle(.window)
 
@@ -29,5 +38,22 @@ struct LimitBarApp: App {
             )
         }
         .defaultSize(width: 540, height: 560)
+    }
+
+    private var menuBarIconImage: NSImage? {
+        guard
+            let url = Bundle.moduleResources.url(
+                forResource: "menu-icon-18",
+                withExtension: "png",
+                subdirectory: "Assets.xcassets/MenuBarIcon.imageset"
+            ),
+            let image = NSImage(contentsOf: url)
+        else {
+            return nil
+        }
+
+        image.isTemplate = true
+        image.size = NSSize(width: 18, height: 18)
+        return image
     }
 }
