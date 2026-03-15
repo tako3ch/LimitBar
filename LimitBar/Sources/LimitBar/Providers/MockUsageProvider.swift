@@ -23,7 +23,9 @@ struct MockUsageProvider: UsageProvider {
             status: UsageSnapshot.status(for: percent),
             lastUpdated: .now,
             details: "Mock sample \(index + 1)",
-            weeklyPercent: nil
+            weeklyPercent: nil,
+            resetAt: Date().addingTimeInterval(3600 * 2),
+            weeklyResetAt: nil
         )
     }
 }

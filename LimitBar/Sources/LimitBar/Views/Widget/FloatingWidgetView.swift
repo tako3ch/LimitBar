@@ -13,6 +13,7 @@ struct FloatingWidgetView: View {
         let percent: Double
         let status: UsageStatus
         let isWeekly: Bool
+        let resetAt: Date?
 
         var barTint: Color {
             isWeekly ? service.weeklyColor : LimitBarTheme.progressColor(for: percent, service: service)
@@ -20,6 +21,26 @@ struct FloatingWidgetView: View {
 
         var percentageTint: Color {
             isWeekly ? LimitBarTheme.weeklyText : LimitBarTheme.severityColor(for: percent)
+        }
+
+        var resetLabel: String? {
+            guard let date = resetAt else { return nil }
+            let remaining = date.timeIntervalSinceNow
+            guard remaining > 0 else { return nil }
+
+            if isWeekly {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "ja_JP")
+                formatter.dateFormat = "M/d(E) HH:mm"
+                return formatter.string(from: date)
+            } else {
+                let hours = Int(remaining) / 3600
+                let minutes = (Int(remaining) % 3600) / 60
+                if hours > 0 {
+                    return "\(hours)h \(minutes)m"
+                }
+                return "\(max(minutes, 1))m"
+            }
         }
     }
 
@@ -34,16 +55,12 @@ struct FloatingWidgetView: View {
         )
     }
 
-    private var rowFontSize: CGFloat {
-        settings.widgetSize == .small ? 12 : 13
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if settings.displayMode == .normal {
                 HStack {
                     Text(strings.appTitle)
-                        .font(.system(size: rowFontSize, weight: .medium))
+                        .font(.system(size: settings.widgetSize == .small ? 12 : 13, weight: .medium))
                         .foregroundStyle(LimitBarTheme.muted)
                     Spacer()
                     Image(systemName: "capsule.lefthalf.filled")
@@ -58,11 +75,11 @@ struct FloatingWidgetView: View {
                     .foregroundStyle(LimitBarTheme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ForEach(widgetRows) { snapshot in
+                ForEach(widgetRows) { row in
                     if settings.displayMode == .minimal {
-                        minimalRow(for: snapshot)
+                        MinimalWidgetRow(row: row, widgetSize: settings.widgetSize, strings: strings)
                     } else {
-                        normalRow(for: snapshot)
+                        NormalWidgetRow(row: row, widgetSize: settings.widgetSize)
                     }
                 }
             }
@@ -85,7 +102,8 @@ struct FloatingWidgetView: View {
                     title: snapshot.service.displayName,
                     percent: snapshot.clampedPercent,
                     status: snapshot.status,
-                    isWeekly: false
+                    isWeekly: false,
+                    resetAt: snapshot.resetAt
                 )
             ]
 
@@ -98,7 +116,8 @@ struct FloatingWidgetView: View {
                         title: strings.weeklyLabel,
                         percent: weeklyPercent,
                         status: UsageSnapshot.status(for: weeklyPercent),
-                        isWeekly: true
+                        isWeekly: true,
+                        resetAt: snapshot.weeklyResetAt
                     )
                 )
             }
@@ -115,48 +134,92 @@ struct FloatingWidgetView: View {
         }
     }
 
-    @ViewBuilder
-    private func normalRow(for snapshot: WidgetUsageRow) -> some View {
-        HStack(spacing: 10) {
-            ServiceLogoMark(service: snapshot.service, size: settings.widgetSize == .small ? 18 : 20)
+    private struct NormalWidgetRow: View {
+        let row: WidgetUsageRow
+        let widgetSize: WidgetSize
+        @State private var isHovered = false
 
-            Text(snapshot.title)
-                .font(.system(size: rowFontSize, weight: .semibold))
-                .foregroundStyle(LimitBarTheme.strongText)
-                .frame(width: 84, alignment: .leading)
+        private var logoSize: CGFloat { widgetSize == .small ? 18 : 20 }
+        private var fontSize: CGFloat { widgetSize == .small ? 12 : 13 }
+        private var percentFontSize: CGFloat { widgetSize == .small ? 14 : 16 }
+        private var rowHeight: CGFloat { widgetSize == .small ? 18 : 22 }
 
-            ProgressPill(percent: snapshot.percent, tint: snapshot.barTint)
-                .frame(height: 6)
+        var body: some View {
+            HStack(spacing: 10) {
+                ServiceLogoMark(service: row.service, size: logoSize)
 
-            Text("\(Int(snapshot.percent))%")
-                .font(.system(size: settings.widgetSize == .small ? 14 : 16, weight: .thin, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(snapshot.percentageTint)
-                .frame(width: 42, alignment: .trailing)
+                Text(row.title)
+                    .font(.system(size: fontSize, weight: .semibold))
+                    .foregroundStyle(LimitBarTheme.strongText)
+                    .frame(width: 84, alignment: .leading)
+
+                ZStack {
+                    ProgressPill(percent: row.percent, tint: row.barTint)
+                        .frame(height: 6)
+                        .opacity(isHovered && row.resetLabel != nil ? 0 : 1)
+
+                    if isHovered, let label = row.resetLabel {
+                        Text(label)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(LimitBarTheme.strongText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .padding(.horizontal, 4)
+                    }
+                }
+
+                Text("\(Int(row.percent))%")
+                    .font(.system(size: percentFontSize, weight: .thin, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(row.percentageTint)
+                    .frame(width: 42, alignment: .trailing)
+            }
+            .frame(height: rowHeight)
+            .onHover { isHovered = $0 }
         }
-        .frame(height: settings.widgetSize == .small ? 18 : 22)
     }
 
-    @ViewBuilder
-    private func minimalRow(for snapshot: WidgetUsageRow) -> some View {
-        HStack(spacing: 10) {
-            ServiceLogoMark(service: snapshot.service, size: settings.widgetSize == .small ? 18 : 20)
+    private struct MinimalWidgetRow: View {
+        let row: WidgetUsageRow
+        let widgetSize: WidgetSize
+        let strings: AppStrings
+        @State private var isHovered = false
 
-            Spacer(minLength: 0)
+        private var logoSize: CGFloat { widgetSize == .small ? 18 : 20 }
+        private var percentFontSize: CGFloat { widgetSize == .small ? 20 : 24 }
+        private var percentWidth: CGFloat { widgetSize == .small ? 58 : 70 }
+        private var rowHeight: CGFloat { widgetSize == .small ? 22 : 26 }
 
-            if snapshot.isWeekly {
-                Text(strings.weeklyShortLabel)
-                    .font(.system(size: settings.widgetSize == .small ? 10 : 11, weight: .semibold))
-                    .foregroundStyle(LimitBarTheme.muted)
+        var body: some View {
+            HStack(spacing: 10) {
+                ServiceLogoMark(service: row.service, size: logoSize)
+
+                if isHovered, let label = row.resetLabel {
+                    Text(label)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(LimitBarTheme.muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                } else {
+                    Spacer(minLength: 0)
+
+                    if row.isWeekly {
+                        Text(strings.weeklyShortLabel)
+                            .font(.system(size: widgetSize == .small ? 10 : 11, weight: .semibold))
+                            .foregroundStyle(LimitBarTheme.muted)
+                    }
+
+                    Text("\(Int(row.percent))%")
+                        .font(.system(size: percentFontSize, weight: .light, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(row.percentageTint)
+                        .frame(width: percentWidth, alignment: .trailing)
+                }
             }
-
-            Text("\(Int(snapshot.percent))%")
-                .font(.system(size: settings.widgetSize == .small ? 20 : 24, weight: .light, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(snapshot.percentageTint)
-                .frame(width: settings.widgetSize == .small ? 58 : 70, alignment: .trailing)
+            .frame(height: rowHeight)
+            .onHover { isHovered = $0 }
         }
-        .frame(height: settings.widgetSize == .small ? 22 : 26)
     }
 
     private var widgetBackground: some View {
