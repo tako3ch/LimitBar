@@ -27,9 +27,14 @@ struct UsageReportView: View {
         }
     }
 
+    private var cutoffDate: Date {
+        Calendar.current.startOfDay(
+            for: Calendar.current.date(byAdding: .day, value: -(period.days - 1), to: Date())!
+        )
+    }
+
     private var filteredRecords: [UsageDailyRecord] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -period.days, to: Date())!
-        return historyStore.records.filter { $0.date >= cutoff }
+        return historyStore.records.filter { $0.date >= cutoffDate }
     }
 
     var body: some View {
@@ -82,6 +87,7 @@ struct UsageReportView: View {
                                 .foregroundStyle(.red.opacity(0.7))
                         }
                 }
+                .chartXScale(domain: cutoffDate...Date())
                 .chartYScale(domain: 0...100)
                 .chartYAxis {
                     AxisMarks(values: [0, 25, 50, 75, 100]) { value in

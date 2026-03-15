@@ -83,6 +83,8 @@ struct UsageSnapshot: Identifiable, Equatable, Codable {
     let lastUpdated: Date
     let details: String?
     let weeklyPercent: Double?
+    let resetAt: Date?
+    let weeklyResetAt: Date?
 
     var id: ServiceKind { service }
     var clampedPercent: Double { min(max(usedPercent, 0), 100) }

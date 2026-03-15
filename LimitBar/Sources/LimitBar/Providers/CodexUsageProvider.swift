@@ -12,6 +12,12 @@ struct CodexUsageProvider: UsageProvider {
         let payload = try JSONDecoder().decode(CodexUsagePayload.self, from: data)
         let window = payload.rateLimit.primaryWindow ?? payload.rateLimit.secondaryWindow
         let percent = window?.usedPercent ?? 0
+        let primaryResetAt = payload.rateLimit.primaryWindow.map {
+            Date().addingTimeInterval(TimeInterval($0.resetAfterSeconds))
+        }
+        let weeklyResetAt = payload.rateLimit.secondaryWindow.map {
+            Date().addingTimeInterval(TimeInterval($0.resetAfterSeconds))
+        }
 
         return UsageSnapshot(
             service: service,
@@ -19,7 +25,9 @@ struct CodexUsageProvider: UsageProvider {
             status: UsageSnapshot.status(for: percent),
             lastUpdated: .now,
             details: Self.details(from: payload),
-            weeklyPercent: payload.rateLimit.secondaryWindow?.usedPercent
+            weeklyPercent: payload.rateLimit.secondaryWindow?.usedPercent,
+            resetAt: primaryResetAt,
+            weeklyResetAt: weeklyResetAt
         )
     }
 
